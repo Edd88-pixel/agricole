@@ -1,0 +1,34 @@
+export type DiagnosisStatus = 'healthy' | 'stressed' | 'sick' | 'pending';
+
+export type DiagnosisResult = {
+  id: string;
+  crop: string;
+  stage: string;
+  symptoms: string[];
+  context: string;
+  createdAt: string;
+  status: DiagnosisStatus;
+  confidence: number;
+  primary: DiagnosisClass;
+  alternatives: DiagnosisClass[];
+  actions: string[];
+};
+
+export type DiagnosisClass = {
+  label: string;
+  confidence: number;
+  status: 'healthy' | 'stressed' | 'sick';
+  description: string;
+};
+
+export type UploadJob = {
+  id: string;
+  files: string[];
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+};
+
+export type Reminder = {
+  id: string;
+  scheduledFor: string;
+  notes: string;
+};
