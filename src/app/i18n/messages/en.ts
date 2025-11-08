@@ -1,0 +1,155 @@
+const en = {
+  common: {
+    brandName: 'AgriSense Diagnostics',
+    continue: 'Continue',
+    back: 'Back',
+    cancel: 'Cancel',
+    save: 'Save changes',
+    upload: 'Upload',
+    statusHealthy: 'Healthy',
+    statusStressed: 'Under stress',
+    statusSick: 'Disease detected',
+    language: 'Language',
+    theme: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    loading: 'Loading…',
+    optional: 'Optional',
+    actions: 'Recommended actions',
+    feedbackUseful: 'Was this helpful?',
+    signOut: 'Sign out',
+    profileLoadError: 'We were unable to load your profile. Please refresh the page.'
+  },
+  auth: {
+    signInTitle: 'Sign in to continue',
+    signInSubtitle: 'Secure access to your agronomic intelligence workspace.',
+    signUpTitle: 'Create your account',
+    signUpSubtitle: 'Set up credentials to synchronise diagnostics across devices.',
+    signInAction: 'Sign in',
+    signUpAction: 'Create account',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm password',
+    agreeTerms: 'I agree to data processing and privacy terms',
+    passwordMismatch: 'Passwords must match',
+    switchToSignUp: 'Create an account',
+    switchToSignIn: 'Already registered? Sign in',
+    consentRequired: 'Please confirm you accept the data processing terms.',
+    heroTitle: 'Your command centre for plant health decisions',
+    heroSubtitle:
+      'Monitor your fields, qualify anomalies and trigger expert recommendations powered by Gemini edge intelligence.',
+    guardianTagline: 'Edge-first agronomic intelligence',
+    featurePrivacy: 'GDPR compliant, encrypted data residency in the EU.',
+    featureSecurity: 'Role-based access and strict row-level security on Supabase.',
+    featureEdge: 'Gemini-powered inference executed in Supabase Edge Functions.',
+    onboardingTitle: 'Set up your profile',
+    objectivesStep: 'Your goals',
+    locationStep: 'Approximate location',
+    cropsStep: 'Main crops',
+    objectivesPlaceholder: 'Monitor health, anticipate risks…',
+    locationPlaceholder: 'Region, city or GPS area',
+    cropsPlaceholder: 'Select the crops you follow',
+    finish: 'Finish onboarding',
+    skip: 'Skip for now'
+  },
+  dashboard: {
+    welcome: 'Welcome, {{name}}',
+    dashboard: 'Dashboard',
+    quickScan: 'Quick scan',
+    quickScanDescription: 'Upload up to 5 photos for an instant pre-diagnosis.',
+    guidedScan: 'Guided analysis',
+    guidedScanDescription: 'Describe crop, symptoms and context step by step.',
+    createFarm: 'Add a farm',
+    createPlot: 'Add a plot',
+    createDiagnosis: 'New diagnosis',
+    history: 'Recent activity',
+    knowledgeBase: 'Knowledge base',
+    settings: 'Settings',
+    checklistQuality: 'Check field sensors',
+    checklistUpload: 'Upload 3 photos per plot',
+    checklistFollowup: 'Schedule a 48h follow-up'
+  },
+  diagnosis: {
+    uploadTitle: 'Upload plant photos',
+    uploadHint: 'Drag & drop or click to browse. JPG/PNG up to 10 MB.',
+    qualityCheck: 'We will check quality before inference.',
+    continueToContext: 'Describe context',
+    cropLabel: 'Crop',
+    stageLabel: 'Growth stage',
+    symptomsLabel: 'Visible symptoms',
+    contextLabel: 'Context notes',
+    cropPlaceholder: 'e.g. Maize',
+    stagePlaceholder: 'e.g. Vegetative',
+    contextPlaceholder: 'Recent field observations',
+    submit: 'Send for analysis',
+    errorGeneral: 'Analysis could not be completed. Please retry in a few minutes.',
+    inProgress: 'Analysis in progress…',
+    confidenceLow: 'Confidence is low. Please follow general prevention tips.',
+    primaryResult: 'Primary diagnosis',
+    alternatives: 'Other possible issues',
+    scores: 'Confidence',
+    checklistTitle: 'Action checklist',
+    remove: 'Remove',
+    photoCount: '{{count}}/{{max}} photos',
+    reminder: 'Schedule a follow-up in 48–72 hours',
+    feedbackQuestion: 'How useful was this diagnosis?',
+    export: 'Export PDF'
+  },
+  history: {
+    title: 'History',
+    empty: 'No diagnosis yet. Start with a quick scan or guided flow.',
+    markResolved: 'Mark as resolved',
+    status: 'Status',
+    missing: 'Report not found.'
+  },
+  settings: {
+    title: 'Settings',
+    profile: 'Profile',
+    farms: 'Farms & crops',
+    preferences: 'Preferences',
+    notifications: 'Notifications',
+    language: 'Interface language',
+    theme: 'Appearance',
+    consent: 'Data consents'
+  },
+  kb: {
+    title: 'Knowledge base',
+    searchPlaceholder: 'Search by crop or symptom',
+    more: 'View article',
+    empty: 'No article matches your search.'
+  },
+  admin: {
+    title: 'Admin',
+    subtitle: 'Moderation and taxonomy',
+    feedback: 'Feedback awaiting review: {{count}}',
+    articles: 'Articles awaiting validation: {{count}}',
+    console: 'Open console'
+  },
+  domain: {
+    crops: {
+      maize: 'Maize',
+      wheat: 'Wheat',
+      cotton: 'Cotton',
+      rice: 'Rice',
+      tomato: 'Tomato',
+      potato: 'Potato'
+    },
+    stages: {
+      sowing: 'Sowing',
+      vegetative: 'Vegetative',
+      flowering: 'Flowering',
+      harvest: 'Harvest'
+    },
+    symptoms: {
+      leafSpots: 'Leaf spots',
+      chlorosis: 'Chlorosis',
+      wilting: 'Wilting',
+      insectBite: 'Insect damage',
+      necrosis: 'Necrosis',
+      insectsVisible: 'Visible insects'
+    }
+  }
+} as const;
+
+export default en;

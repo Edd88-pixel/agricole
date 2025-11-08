@@ -1,0 +1,155 @@
+const fr = {
+  common: {
+    brandName: 'AgriSense Diagnostics',
+    continue: 'Continuer',
+    back: 'Retour',
+    cancel: 'Annuler',
+    save: 'Enregistrer',
+    upload: 'Téléverser',
+    statusHealthy: 'Sain',
+    statusStressed: 'En stress',
+    statusSick: 'Maladie détectée',
+    language: 'Langue',
+    theme: 'Thème',
+    light: 'Clair',
+    dark: 'Sombre',
+    system: 'Système',
+    loading: 'Chargement…',
+    optional: 'Optionnel',
+    actions: 'Actions recommandées',
+    feedbackUseful: 'Ce diagnostic vous a-t-il aidé ?',
+    signOut: 'Se déconnecter',
+    profileLoadError: 'Impossible de charger votre profil. Veuillez rafraîchir la page.'
+  },
+  auth: {
+    signInTitle: 'Connectez-vous',
+    signInSubtitle: 'Accédez à votre centre de pilotage agronomique sécurisé.',
+    signUpTitle: 'Créer un compte',
+    signUpSubtitle: 'Définissez vos accès pour synchroniser les diagnostics sur tous vos appareils.',
+    signInAction: 'Se connecter',
+    signUpAction: 'Créer mon espace',
+    email: 'Email',
+    password: 'Mot de passe',
+    confirmPassword: 'Confirmer le mot de passe',
+    agreeTerms: 'J’accepte le traitement des données et la politique de confidentialité',
+    passwordMismatch: 'Les mots de passe doivent correspondre',
+    switchToSignUp: 'Créer un espace',
+    switchToSignIn: 'Déjà inscrit ? Connectez-vous',
+    consentRequired: 'Merci de confirmer votre accord avec les conditions de traitement des données.',
+    heroTitle: 'La tour de contrôle de la santé des cultures',
+    heroSubtitle:
+      'Surveillez vos parcelles, qualifiez les anomalies et activez les recommandations expertes propulsées par Gemini en edge.',
+    guardianTagline: 'Intelligence agronomique edge-first',
+    featurePrivacy: 'Conforme RGPD, données chiffrées et hébergées dans l’UE.',
+    featureSecurity: 'Accès par rôles et sécurité stricte par lignes Supabase.',
+    featureEdge: 'Inférence Gemini exécutée dans les Edge Functions Supabase.',
+    onboardingTitle: 'Configurez votre profil',
+    objectivesStep: 'Vos objectifs',
+    locationStep: 'Localisation approximative',
+    cropsStep: 'Cultures principales',
+    objectivesPlaceholder: 'Surveiller la santé, anticiper les risques…',
+    locationPlaceholder: 'Région, ville ou zone GPS',
+    cropsPlaceholder: 'Sélectionnez les cultures suivies',
+    finish: 'Terminer',
+    skip: 'Passer pour le moment'
+  },
+  dashboard: {
+    welcome: 'Bienvenue, {{name}}',
+    dashboard: 'Tableau de bord',
+    quickScan: 'Scan rapide',
+    quickScanDescription: 'Téléversez jusqu’à 5 photos pour un pré-diagnostic instantané.',
+    guidedScan: 'Analyse guidée',
+    guidedScanDescription: 'Décrivez culture, symptômes et contexte étape par étape.',
+    createFarm: 'Ajouter une exploitation',
+    createPlot: 'Ajouter une parcelle',
+    createDiagnosis: 'Nouveau diagnostic',
+    history: 'Activité récente',
+    knowledgeBase: 'Base de connaissances',
+    settings: 'Paramètres',
+    checklistQuality: 'Vérifier les capteurs de terrain',
+    checklistUpload: 'Téléverser 3 photos par parcelle',
+    checklistFollowup: 'Programmer un suivi à 48 h'
+  },
+  diagnosis: {
+    uploadTitle: 'Téléversez des photos',
+    uploadHint: 'Glissez-déposez ou cliquez pour parcourir. JPG/PNG jusqu’à 10 Mo.',
+    qualityCheck: 'Nous vérifions la qualité avant l’inférence.',
+    continueToContext: 'Décrire le contexte',
+    cropLabel: 'Culture',
+    stageLabel: 'Stade de croissance',
+    symptomsLabel: 'Symptômes observés',
+    contextLabel: 'Notes de contexte',
+    cropPlaceholder: 'ex. Maïs',
+    stagePlaceholder: 'ex. Végétatif',
+    contextPlaceholder: 'Observations récentes au champ',
+    submit: 'Envoyer pour analyse',
+    errorGeneral: 'Analyse impossible pour le moment. Réessayez dans quelques minutes.',
+    inProgress: 'Analyse en cours…',
+    confidenceLow: 'Confiance faible. Appliquez les conseils préventifs généraux.',
+    primaryResult: 'Diagnostic principal',
+    alternatives: 'Autres pistes possibles',
+    scores: 'Confiance',
+    checklistTitle: 'Checklist d’actions',
+    remove: 'Retirer',
+    photoCount: '{{count}}/{{max}} photos',
+    reminder: 'Planifier un suivi dans 48–72 h',
+    feedbackQuestion: 'Ce diagnostic est-il utile ?',
+    export: 'Exporter le PDF'
+  },
+  history: {
+    title: 'Historique',
+    empty: 'Aucun diagnostic. Lancez un scan rapide ou guidé.',
+    markResolved: 'Marquer comme résolu',
+    status: 'Statut',
+    missing: 'Rapport introuvable.'
+  },
+  settings: {
+    title: 'Paramètres',
+    profile: 'Profil',
+    farms: 'Exploitations & cultures',
+    preferences: 'Préférences',
+    notifications: 'Notifications',
+    language: 'Langue de l’interface',
+    theme: 'Apparence',
+    consent: 'Consentements'
+  },
+  kb: {
+    title: 'Base de connaissances',
+    searchPlaceholder: 'Rechercher par culture ou symptôme',
+    more: 'Voir l’article',
+    empty: 'Aucun article ne correspond à votre recherche.'
+  },
+  admin: {
+    title: 'Admin',
+    subtitle: 'Modération et taxonomie',
+    feedback: 'Feedback à modérer : {{count}}',
+    articles: 'Articles à valider : {{count}}',
+    console: 'Ouvrir la console'
+  },
+  domain: {
+    crops: {
+      maize: 'Maïs',
+      wheat: 'Blé',
+      cotton: 'Coton',
+      rice: 'Riz',
+      tomato: 'Tomate',
+      potato: 'Pomme de terre'
+    },
+    stages: {
+      sowing: 'Semis',
+      vegetative: 'Végétatif',
+      flowering: 'Floraison',
+      harvest: 'Récolte'
+    },
+    symptoms: {
+      leafSpots: 'Taches foliaires',
+      chlorosis: 'Chlorose',
+      wilting: 'Flétrissement',
+      insectBite: 'Dégâts d’insectes',
+      necrosis: 'Nécrose',
+      insectsVisible: 'Insectes visibles'
+    }
+  }
+} as const;
+
+export default fr;
