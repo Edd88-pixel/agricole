@@ -26,11 +26,11 @@ type AnchorProps = BaseProps & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-gradient-to-r from-brand-primary to-brand-accent text-white shadow-lg shadow-brand-primary/20 hover:from-brand-accent hover:to-brand-secondary focus-visible:outline-brand-secondary disabled:from-brand-muted disabled:to-brand-muted',
+    'bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent text-white shadow-lg shadow-brand-primary/25 hover:from-brand-secondary hover:to-brand-accent hover:shadow-[0_18px_38px_rgba(11,110,79,0.35)] before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:bg-white/10 before:opacity-0 before:transition-opacity before:duration-300 before:content-[""] hover:before:opacity-100 focus-visible:outline-brand-secondary disabled:from-brand-muted disabled:via-brand-muted disabled:to-brand-muted',
   secondary:
-    'border border-brand-secondary/60 text-brand-secondary hover:border-brand-secondary hover:bg-brand-background focus-visible:outline-brand-secondary',
+    'border border-brand-secondary/60 text-brand-secondary shadow-sm shadow-brand-secondary/10 hover:border-brand-secondary hover:bg-brand-background/70 hover:shadow-[0_16px_32px_rgba(16,124,140,0.18)] focus-visible:outline-brand-secondary',
   ghost:
-    'text-brand-secondary hover:bg-brand-background/60 focus-visible:outline-brand-secondary'
+    'text-brand-secondary hover:bg-brand-background/80 hover:text-brand-primary focus-visible:outline-brand-secondary'
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -41,7 +41,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 const Button = forwardRef<HTMLButtonElement, ButtonProps | AnchorProps>(
   ({ variant = 'primary', size = 'md', isLoading, icon, className, children, asChild, ...rest }, ref) => {
     const classes = clsx(
-      'focus-ring inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60',
+      'focus-ring relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full font-semibold transition-all duration-300 ease-out motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-95 disabled:cursor-not-allowed disabled:opacity-60',
       variantClasses[variant],
       sizeClasses[size],
       className

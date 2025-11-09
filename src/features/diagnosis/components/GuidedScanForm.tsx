@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Stepper from '@/components/ui/Stepper';
+import UploadZone from '@/components/ui/UploadZone';
 import DiagnosisResultPanel from './ResultPanel';
 import { runInference } from '../services/inference';
 import type { DiagnosisResult } from '../types/diagnosis';
@@ -39,6 +40,7 @@ type GuidedProps = {
 const GuidedScanForm = ({ onResult }: GuidedProps) => {
   const { t } = useTranslation();
   const [step, setStep] = useState(0);
+  const [files, setFiles] = useState<File[]>([]);
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,12 +62,19 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
         setError(null);
         const values = form.getValues();
         try {
-          const inference = await runInference({ ...values, files: [] });
+          if (files.length === 0) {
+            throw new Error('missing-files');
+          }
+          const inference = await runInference({ ...values, files });
           setResult(inference);
           onResult?.(inference);
         } catch (submissionError) {
           console.error('Guided scan submission failed', submissionError);
-          setError(t('diagnosis.errorGeneral'));
+          if ((submissionError as Error).message === 'missing-files') {
+            setError(t('diagnosis.uploadHint'));
+          } else {
+            setError(t('diagnosis.errorGeneral'));
+          }
         } finally {
           setSubmitting(false);
         }
@@ -79,18 +88,24 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
 
   return (
     <div className="space-y-8">
-      <Card className="space-y-8">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold text-brand-text">{t('dashboard.guidedScan')}</h1>
+      <Card className="space-y-8 border border-subtle/70 bg-brand-surface/90">
+        <header className="space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h1 className="text-3xl font-semibold text-brand-text">{t('dashboard.guidedScan')}</h1>
+            <span className="rounded-full border border-brand-secondary/30 bg-brand-background/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-secondary shadow-sm">
+              {t('diagnosis.uploadTitle')}
+            </span>
+          </div>
           <Stepper steps={labels} currentStep={step} />
         </header>
-        <form className="space-y-5">
+        <UploadZone files={files} onChange={setFiles} />
+        <form className="space-y-6">
           {step === 0 && (
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-3">
                 <span className="text-sm font-medium text-brand-text">{t('diagnosis.cropLabel')}</span>
                 <select
-                  className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/70 p-4 text-sm shadow-inner"
+                  className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60"
                   {...form.register('crop')}
                 >
                   <option value="">--</option>
@@ -107,7 +122,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
               <label className="space-y-3">
                 <span className="text-sm font-medium text-brand-text">{t('diagnosis.stageLabel')}</span>
                 <select
-                  className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/70 p-4 text-sm shadow-inner"
+                  className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60"
                   {...form.register('stage')}
                 >
                   <option value="">--</option>
@@ -130,7 +145,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
                 {optionKeys.symptoms.map((key) => (
                   <label
                     key={key}
-                    className="flex items-center gap-3 rounded-3xl border border-brand-secondary/20 bg-white/70 p-4 shadow-sm"
+                    className="flex items-center gap-3 rounded-3xl border border-brand-secondary/20 bg-white/80 p-4 shadow-sm transition hover:border-brand-secondary/40 hover:shadow-[0_12px_24px_rgba(16,124,140,0.12)]"
                   >
                     <input
                       type="checkbox"
@@ -151,7 +166,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
             <label className="block space-y-3">
               <span className="text-sm font-medium text-brand-text">{t('diagnosis.contextLabel')}</span>
               <textarea
-                className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/70 p-4 text-sm shadow-inner"
+                className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60"
                 rows={4}
                 {...form.register('context')}
                 placeholder={t('diagnosis.contextPlaceholder') ?? ''}
@@ -163,10 +178,15 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
           )}
         </form>
         <footer className="flex items-center justify-between">
-          <Button variant="ghost" onClick={goBack} disabled={step === 0}>
+          <Button variant="ghost" onClick={goBack} disabled={step === 0} className="motion-safe:hover:-translate-y-0.5">
             {t('common.back')}
           </Button>
-          <Button onClick={goNext} isLoading={isSubmitting}>
+          <Button
+            onClick={goNext}
+            isLoading={isSubmitting}
+            disabled={step === steps.length - 1 && files.length === 0}
+            className="motion-safe:hover:-translate-y-0.5"
+          >
             {step === steps.length - 1 ? t('diagnosis.submit') : t('common.continue')}
           </Button>
         </footer>
@@ -174,7 +194,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
       {error && (
         <p
           role="alert"
-          className="rounded-lg border border-brand-danger bg-brand-danger/10 p-3 text-sm text-brand-danger"
+          className="rounded-2xl border border-brand-danger/40 bg-brand-danger/10 p-4 text-sm text-brand-danger shadow-sm"
         >
           {error}
         </p>

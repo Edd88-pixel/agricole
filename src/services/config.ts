@@ -14,10 +14,12 @@ export const appConfig = {
   supabase: {
     storageBuckets: {
       diagnosis: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_DIAGNOSIS', 'diagnosis-images'),
-      reports: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_REPORTS', 'diagnosis-reports')
+      reports: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_REPORTS', 'diagnosis-reports'),
+      profile: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_PROFILE', 'profile-avatars')
     },
     functions: {
-      diagnosisInfer: getEnvValue('VITE_SUPABASE_FUNCTION_DIAGNOSIS', 'diagnosis-infer')
+      diagnosisInfer: getEnvValue('VITE_SUPABASE_FUNCTION_DIAGNOSIS', 'diagnosis-infer'),
+      knowledgeChat: getEnvValue('VITE_SUPABASE_FUNCTION_KNOWLEDGE', 'knowledge-chat')
     }
   },
   gemini: {

@@ -6,7 +6,9 @@ import type { KnowledgeArticle } from '@/features/kb/types/article';
 import {
   fetchDiagnoses,
   insertDiagnosis,
-  updateDiagnosisResolved
+  updateDiagnosisResolved,
+  deleteDiagnosis,
+  updateDiagnosisDetails
 } from '@/services/supabase/diagnosis';
 import { fetchKnowledgeArticles } from '@/services/supabase/knowledge';
 import { useSupabaseData } from './useSupabaseData';
@@ -37,7 +39,9 @@ const sampleDiagnosis: DiagnosisResult = {
     description: 'Likely leaf blight'
   },
   alternatives: [],
-  actions: ['Monitor']
+  actions: ['Monitor'],
+  images: ['https://example.com/image.jpg'],
+  imagePaths: ['diagnosis-images/user-1/file.jpg']
 };
 
 const sampleArticle: KnowledgeArticle = {
@@ -58,6 +62,8 @@ describe('useSupabaseData', () => {
     (fetchKnowledgeArticles as unknown as Mock).mockResolvedValue([sampleArticle]);
     (insertDiagnosis as unknown as Mock).mockResolvedValue(undefined);
     (updateDiagnosisResolved as unknown as Mock).mockResolvedValue(undefined);
+    (deleteDiagnosis as unknown as Mock).mockResolvedValue(undefined);
+    (updateDiagnosisDetails as unknown as Mock).mockResolvedValue(undefined);
   });
 
   it('loads history and articles from Supabase', async () => {
@@ -87,6 +93,7 @@ describe('useSupabaseData', () => {
 
     expect(insertDiagnosis).toHaveBeenCalledWith(sampleDiagnosis);
     expect(result.current.history[0]?.id).toBe(sampleDiagnosis.id);
+    expect(result.current.history[0]?.imagePaths).toEqual(sampleDiagnosis.imagePaths);
   });
 
   it('toggles resolved state and syncs with Supabase', async () => {
@@ -102,5 +109,40 @@ describe('useSupabaseData', () => {
     });
 
     expect(updateDiagnosisResolved).toHaveBeenCalledWith(sampleDiagnosis.id, true);
+  });
+
+  it('removes a diagnosis and syncs deletion with Supabase', async () => {
+    (fetchDiagnoses as unknown as Mock).mockResolvedValueOnce([
+      { ...sampleDiagnosis, resolved: false }
+    ]);
+
+    const { result } = renderHook(() => useSupabaseData());
+    await waitFor(() => expect(result.current.historyLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.removeDiagnosis(sampleDiagnosis.id);
+    });
+
+    expect(deleteDiagnosis).toHaveBeenCalledWith(sampleDiagnosis.id, sampleDiagnosis.imagePaths);
+    expect(result.current.history).toHaveLength(0);
+  });
+
+  it('updates diagnosis details and persists them', async () => {
+    (fetchDiagnoses as unknown as Mock).mockResolvedValueOnce([
+      { ...sampleDiagnosis, resolved: false }
+    ]);
+
+    const { result } = renderHook(() => useSupabaseData());
+    await waitFor(() => expect(result.current.historyLoading).toBe(false));
+
+    const updates = { context: 'Mise à jour', stage: 'Floraison' };
+    await act(async () => {
+      await result.current.updateDiagnosis(sampleDiagnosis.id, updates);
+    });
+
+    expect(updateDiagnosisDetails).toHaveBeenCalledWith(sampleDiagnosis.id, updates);
+    expect(result.current.history[0]?.context).toBe(updates.context);
+    expect(result.current.history[0]?.stage).toBe(updates.stage);
+    expect(result.current.history[0]?.imagePaths).toEqual(sampleDiagnosis.imagePaths);
   });
 });

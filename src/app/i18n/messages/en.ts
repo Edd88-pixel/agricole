@@ -9,6 +9,7 @@ const en = {
     statusHealthy: 'Healthy',
     statusStressed: 'Under stress',
     statusSick: 'Disease detected',
+    statusPending: 'Pending',
     language: 'Language',
     theme: 'Theme',
     light: 'Light',
@@ -19,6 +20,8 @@ const en = {
     actions: 'Recommended actions',
     feedbackUseful: 'Was this helpful?',
     signOut: 'Sign out',
+    viewProfile: 'View profile',
+    profileAvatarAlt: 'Profile photo',
     profileLoadError: 'We were unable to load your profile. Please refresh the page.'
   },
   auth: {
@@ -36,6 +39,11 @@ const en = {
     switchToSignUp: 'Create an account',
     switchToSignIn: 'Already registered? Sign in',
     consentRequired: 'Please confirm you accept the data processing terms.',
+    firstName: 'First name',
+    lastName: 'Last name',
+    avatarLabel: 'Profile photo (optional)',
+    selectAvatar: 'Choose a photo',
+    removeAvatar: 'Remove photo',
     heroTitle: 'Your command centre for plant health decisions',
     heroSubtitle:
       'Monitor your fields, qualify anomalies and trigger expert recommendations powered by Gemini edge intelligence.',
@@ -56,6 +64,7 @@ const en = {
   dashboard: {
     welcome: 'Welcome, {{name}}',
     dashboard: 'Dashboard',
+    yourAssistant: 'AI agronomy assistant',
     quickScan: 'Quick scan',
     quickScanDescription: 'Upload up to 5 photos for an instant pre-diagnosis.',
     guidedScan: 'Guided analysis',
@@ -64,11 +73,18 @@ const en = {
     createPlot: 'Add a plot',
     createDiagnosis: 'New diagnosis',
     history: 'Recent activity',
+    historyDescription: 'Review your latest analyses and jump back into the recommended actions.',
+    historyOpen: 'Open',
+    viewAllHistory: 'View all',
     knowledgeBase: 'Knowledge base',
+    knowledgeBaseDescription: 'Chat, research and store agronomic answers in one place.',
+    knowledgeBaseHint: 'Share field photos with the assistant to enrich your research.',
+    openKnowledgeBase: 'Go to the knowledge base',
     settings: 'Settings',
     checklistQuality: 'Check field sensors',
     checklistUpload: 'Upload 3 photos per plot',
-    checklistFollowup: 'Schedule a 48h follow-up'
+    checklistFollowup: 'Schedule a 48h follow-up',
+    mediaLibrary: 'Media library'
   },
   diagnosis: {
     uploadTitle: 'Upload plant photos',
@@ -94,14 +110,30 @@ const en = {
     photoCount: '{{count}}/{{max}} photos',
     reminder: 'Schedule a follow-up in 48–72 hours',
     feedbackQuestion: 'How useful was this diagnosis?',
-    export: 'Export PDF'
+    feedbackHint: 'Your response trains our agronomy assistant to prioritise the right recommendations.',
+    feedbackYes: 'Helpful',
+    feedbackNo: 'Needs work',
+    feedbackThanks: 'Thanks for the feedback! We will use it to refine future results.',
+    feedbackError: 'We could not save your feedback. Please retry.',
+    export: 'Export PDF',
+    mediaTitle: 'Analysed imagery',
+    mediaAlt: 'Analysed photo'
   },
   history: {
     title: 'History',
     empty: 'No diagnosis yet. Start with a quick scan or guided flow.',
     markResolved: 'Mark as resolved',
+    markUnresolved: 'Mark as pending',
     status: 'Status',
-    missing: 'Report not found.'
+    missing: 'Report not found.',
+    edit: 'Edit',
+    save: 'Save',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this diagnosis and its images? This action cannot be undone.',
+    deleteError: 'Unable to delete the diagnosis. Please retry.',
+    updateError: 'Unable to update the diagnosis. Please retry.',
+    stageLabel: 'Stage'
   },
   settings: {
     title: 'Settings',
@@ -111,13 +143,41 @@ const en = {
     notifications: 'Notifications',
     language: 'Interface language',
     theme: 'Appearance',
-    consent: 'Data consents'
+    consent: 'Data consents',
+    profileHeader: 'Identity and avatar',
+    profileTitle: 'Hello {{name}}',
+    profileHint: 'Personalise your greetings and share an optional photo to make the assistant feel more familiar.',
+    profileInfoSaved: 'Profile synchronised with Supabase',
+    profileSaved: 'Profile updated',
+    profileSaveError: 'Unable to update profile. Please retry.',
+    changeAvatar: 'Change avatar',
+    removeAvatar: 'Remove avatar',
+    firstName: 'First name',
+    lastName: 'Last name'
   },
   kb: {
     title: 'Knowledge base',
+    subtitle: 'Chat with the assistant, add photos and get tailored agronomic guidance.',
     searchPlaceholder: 'Search by crop or symptom',
     more: 'View article',
-    empty: 'No article matches your search.'
+    empty: 'No article matches your search.',
+    welcome: 'Hello, how can I assist you today?',
+    placeholder: 'Ask about crop health, threats or best practices…',
+    addPhoto: 'Add photos',
+    send: 'Send',
+    typing: 'Analysing…',
+    error: 'The assistant is temporarily unavailable.',
+    recommended: 'Recommended resources'
+  },
+  library: {
+    title: 'Media library',
+    subtitle: 'Browse your analysed photos grouped by crop and diagnosis.',
+    filterCrop: 'Crop',
+    filterDisease: 'Diagnosis',
+    allCrops: 'All',
+    allDiseases: 'All',
+    empty: 'No media matches your filters.',
+    recommendedActions: 'Recommended actions'
   },
   admin: {
     title: 'Admin',

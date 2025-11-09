@@ -9,6 +9,7 @@ const fr = {
     statusHealthy: 'Sain',
     statusStressed: 'En stress',
     statusSick: 'Maladie détectée',
+    statusPending: 'En cours',
     language: 'Langue',
     theme: 'Thème',
     light: 'Clair',
@@ -19,6 +20,8 @@ const fr = {
     actions: 'Actions recommandées',
     feedbackUseful: 'Ce diagnostic vous a-t-il aidé ?',
     signOut: 'Se déconnecter',
+    viewProfile: 'Voir le profil',
+    profileAvatarAlt: 'Photo de profil',
     profileLoadError: 'Impossible de charger votre profil. Veuillez rafraîchir la page.'
   },
   auth: {
@@ -36,6 +39,11 @@ const fr = {
     switchToSignUp: 'Créer un espace',
     switchToSignIn: 'Déjà inscrit ? Connectez-vous',
     consentRequired: 'Merci de confirmer votre accord avec les conditions de traitement des données.',
+    firstName: 'Prénom',
+    lastName: 'Nom',
+    avatarLabel: 'Photo de profil (optionnel)',
+    selectAvatar: 'Choisir une photo',
+    removeAvatar: 'Supprimer la photo',
     heroTitle: 'La tour de contrôle de la santé des cultures',
     heroSubtitle:
       'Surveillez vos parcelles, qualifiez les anomalies et activez les recommandations expertes propulsées par Gemini en edge.',
@@ -56,6 +64,7 @@ const fr = {
   dashboard: {
     welcome: 'Bienvenue, {{name}}',
     dashboard: 'Tableau de bord',
+    yourAssistant: 'Assistant agronome IA',
     quickScan: 'Scan rapide',
     quickScanDescription: 'Téléversez jusqu’à 5 photos pour un pré-diagnostic instantané.',
     guidedScan: 'Analyse guidée',
@@ -64,11 +73,18 @@ const fr = {
     createPlot: 'Ajouter une parcelle',
     createDiagnosis: 'Nouveau diagnostic',
     history: 'Activité récente',
+    historyDescription: 'Consultez vos dernières analyses et relancez les actions recommandées en un clin d’œil.',
+    historyOpen: 'Ouvrir',
+    viewAllHistory: 'Tout voir',
     knowledgeBase: 'Base de connaissances',
+    knowledgeBaseDescription: 'Discutez, recherchez et archivez vos réponses agronomiques au même endroit.',
+    knowledgeBaseHint: 'Partagez vos photos de terrain avec l’assistant pour enrichir vos recherches.',
+    openKnowledgeBase: 'Accéder à la base de connaissances',
     settings: 'Paramètres',
     checklistQuality: 'Vérifier les capteurs de terrain',
     checklistUpload: 'Téléverser 3 photos par parcelle',
-    checklistFollowup: 'Programmer un suivi à 48 h'
+    checklistFollowup: 'Programmer un suivi à 48 h',
+    mediaLibrary: 'Médiathèque'
   },
   diagnosis: {
     uploadTitle: 'Téléversez des photos',
@@ -94,14 +110,30 @@ const fr = {
     photoCount: '{{count}}/{{max}} photos',
     reminder: 'Planifier un suivi dans 48–72 h',
     feedbackQuestion: 'Ce diagnostic est-il utile ?',
-    export: 'Exporter le PDF'
+    feedbackHint: 'Votre réponse aide l’assistant à prioriser les recommandations pertinentes.',
+    feedbackYes: 'Utile',
+    feedbackNo: 'À améliorer',
+    feedbackThanks: 'Merci pour votre retour ! Nous affinerons les prochains résultats.',
+    feedbackError: 'Impossible d’enregistrer le retour. Réessayez.',
+    export: 'Exporter le PDF',
+    mediaTitle: 'Images analysées',
+    mediaAlt: 'Photo analysée'
   },
   history: {
     title: 'Historique',
     empty: 'Aucun diagnostic. Lancez un scan rapide ou guidé.',
     markResolved: 'Marquer comme résolu',
+    markUnresolved: 'Rebasculer en cours',
     status: 'Statut',
-    missing: 'Rapport introuvable.'
+    missing: 'Rapport introuvable.',
+    edit: 'Modifier',
+    save: 'Enregistrer',
+    cancel: 'Annuler',
+    delete: 'Supprimer',
+    deleteConfirm: 'Supprimer ce diagnostic et ses images ? Cette action est irréversible.',
+    deleteError: 'Impossible de supprimer le diagnostic. Réessayez.',
+    updateError: 'Impossible de mettre à jour le diagnostic. Réessayez.',
+    stageLabel: 'Stade'
   },
   settings: {
     title: 'Paramètres',
@@ -111,13 +143,41 @@ const fr = {
     notifications: 'Notifications',
     language: 'Langue de l’interface',
     theme: 'Apparence',
-    consent: 'Consentements'
+    consent: 'Consentements',
+    profileHeader: 'Identité et avatar',
+    profileTitle: 'Bonjour {{name}}',
+    profileHint: 'Personnalisez votre accueil et ajoutez une photo facultative pour humaniser l’assistant.',
+    profileInfoSaved: 'Profil synchronisé avec Supabase',
+    profileSaved: 'Profil mis à jour',
+    profileSaveError: 'Impossible de mettre à jour le profil. Réessayez.',
+    changeAvatar: 'Changer l’avatar',
+    removeAvatar: 'Supprimer l’avatar',
+    firstName: 'Prénom',
+    lastName: 'Nom'
   },
   kb: {
     title: 'Base de connaissances',
+    subtitle: 'Discutez avec l’assistant, ajoutez des photos et obtenez des conseils contextualisés.',
     searchPlaceholder: 'Rechercher par culture ou symptôme',
     more: 'Voir l’article',
-    empty: 'Aucun article ne correspond à votre recherche.'
+    empty: 'Aucun article ne correspond à votre recherche.',
+    welcome: 'Bonjour, comment puis-je vous aider aujourd’hui ?',
+    placeholder: 'Posez une question sur vos cultures, maladies ou bonnes pratiques…',
+    addPhoto: 'Ajouter des photos',
+    send: 'Envoyer',
+    typing: 'Analyse en cours…',
+    error: 'L’assistant est momentanément indisponible.',
+    recommended: 'Ressources recommandées'
+  },
+  library: {
+    title: 'Médiathèque',
+    subtitle: 'Retrouvez vos images analysées par culture et diagnostic.',
+    filterCrop: 'Culture',
+    filterDisease: 'Diagnostic',
+    allCrops: 'Toutes',
+    allDiseases: 'Tous',
+    empty: 'Aucun média ne correspond à vos filtres.',
+    recommendedActions: 'Actions recommandées'
   },
   admin: {
     title: 'Admin',

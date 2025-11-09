@@ -5,7 +5,9 @@ import type { KnowledgeArticle } from '@/features/kb/types/article';
 import {
   fetchDiagnoses,
   insertDiagnosis,
-  updateDiagnosisResolved
+  updateDiagnosisResolved,
+  deleteDiagnosis,
+  updateDiagnosisDetails
 } from '@/services/supabase/diagnosis';
 import { fetchKnowledgeArticles } from '@/services/supabase/knowledge';
 import { supabase } from '@/services/supabase/client';
@@ -14,6 +16,7 @@ const MAX_HISTORY = 20;
 
 const toHistoryEntry = (result: DiagnosisResult, resolved = false): HistoryEntry => ({
   ...result,
+  imagePaths: result.imagePaths ?? [],
   resolved
 });
 
@@ -93,6 +96,45 @@ export const useSupabaseData = () => {
     [loadHistory]
   );
 
+  const removeDiagnosis = useCallback(
+    async (id: string) => {
+      const snapshot = history;
+      const removed = snapshot.find((entry) => entry.id === id);
+      setHistory((previous) => previous.filter((entry) => entry.id !== id));
+
+      try {
+        await deleteDiagnosis(id, removed?.imagePaths ?? []);
+      } catch (error) {
+        console.error('Failed to delete diagnosis from Supabase', error);
+        setHistory([...snapshot]);
+        throw error;
+      }
+    },
+    [history]
+  );
+
+  const updateDiagnosis = useCallback(
+    async (id: string, updates: { context: string; stage: string }) => {
+      setHistory((previous) =>
+        previous.map((entry) => {
+          if (entry.id === id) {
+            return { ...entry, context: updates.context, stage: updates.stage };
+          }
+          return entry;
+        })
+      );
+
+      try {
+        await updateDiagnosisDetails(id, updates);
+      } catch (error) {
+        console.error('Failed to update diagnosis details in Supabase', error);
+        await loadHistory();
+        throw error;
+      }
+    },
+    [loadHistory]
+  );
+
   return useMemo(
     () => ({
       history,
@@ -100,9 +142,20 @@ export const useSupabaseData = () => {
       articles,
       articlesLoading,
       addResultToHistory,
-      toggleResolved
+      toggleResolved,
+      removeDiagnosis,
+      updateDiagnosis
     }),
-    [addResultToHistory, articles, articlesLoading, history, historyLoading, toggleResolved]
+    [
+      addResultToHistory,
+      articles,
+      articlesLoading,
+      history,
+      historyLoading,
+      toggleResolved,
+      removeDiagnosis,
+      updateDiagnosis
+    ]
   );
 };
 

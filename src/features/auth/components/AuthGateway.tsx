@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,9 @@ import { signIn, signUp } from '@/services/supabase/auth';
 import { supportedLanguages } from '@/app/i18n';
 import Card from '@/components/ui/Card';
 import AuthHero from './AuthHero';
+import { createProfile, fetchProfile, updateProfile } from '@/services/supabase/profile';
+import type { SupportedLocale } from '@/features/profile/types/profile';
+import { uploadProfileAvatar } from '@/services/supabase/storage';
 
 const signInSchema = z.object({
   email: z.string().email(),
@@ -21,6 +24,9 @@ type SignInValues = z.infer<typeof signInSchema>;
 
 const signUpSchema = signInSchema
   .extend({
+    firstName: z.string().min(2),
+    lastName: z.string().min(2),
+    avatar: z.any().optional(),
     confirmPassword: z.string().min(8),
     consent: z.boolean().refine(Boolean, 'consentRequired')
   })
@@ -38,14 +44,32 @@ const AuthGateway = () => {
   const { theme, setTheme } = useTheme();
   const [mode, setMode] = useState<AuthMode>('signin');
   const [error, setError] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const signInForm = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: '', password: '' }
   });
   const signUpForm = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { email: '', password: '', confirmPassword: '', consent: false }
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      consent: false,
+      firstName: '',
+      lastName: '',
+      avatar: undefined
+    }
   });
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   const onSubmitSignIn = signInForm.handleSubmit(async (values) => {
     setError(null);
@@ -57,13 +81,77 @@ const AuthGateway = () => {
 
   const onSubmitSignUp = signUpForm.handleSubmit(async (values) => {
     setError(null);
-    const { error: authError } = await signUp(values.email, values.password);
+    const avatarFiles = values.avatar as FileList | undefined;
+    const avatarFile = avatarFiles && avatarFiles.length > 0 ? avatarFiles[0] : null;
+
+    const { error: authError } = await signUp({
+      email: values.email,
+      password: values.password,
+      firstName: values.firstName,
+      lastName: values.lastName
+    });
+
     if (authError) {
       setError(authError.message);
-    } else {
-      setMode('signin');
-      signInForm.reset({ email: values.email, password: values.password });
+      return;
     }
+
+    const signInResult = await signIn(values.email, values.password);
+    if (signInResult.error) {
+      setError(signInResult.error.message);
+      return;
+    }
+
+    const user = signInResult.data.user;
+    if (user) {
+      try {
+        const locale = (i18n.language.slice(0, 2) as SupportedLocale) === 'en' ? 'en' : 'fr';
+        let avatarPath: string | undefined;
+        if (avatarFile) {
+          avatarPath = await uploadProfileAvatar(avatarFile);
+        }
+        const displayName = `${values.firstName} ${values.lastName}`.trim() || values.email;
+        const existing = await fetchProfile(user.id);
+        if (!existing) {
+          await createProfile({
+            id: user.id,
+            email: values.email,
+            displayName,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            avatarPath,
+            locale,
+            onboardingCompleted: false,
+            crops: []
+          });
+        } else {
+          await updateProfile(user.id, {
+            firstName: values.firstName,
+            lastName: values.lastName,
+            displayName,
+            avatarPath: avatarPath ?? existing.avatarPath
+          });
+        }
+      } catch (profileError) {
+        console.error('Unable to initialise profile after sign-up', profileError);
+      }
+    }
+
+    signInForm.reset({ email: values.email, password: values.password });
+    signUpForm.reset({
+      email: values.email,
+      password: values.password,
+      confirmPassword: values.password,
+      consent: values.consent,
+      firstName: values.firstName,
+      lastName: values.lastName,
+      avatar: undefined
+    });
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+      setAvatarPreview(null);
+    }
+    setMode('signin');
   });
 
   const activeForm = mode === 'signin' ? signInForm : signUpForm;
@@ -99,6 +187,32 @@ const AuthGateway = () => {
               </p>
             </div>
             <form className="space-y-4" onSubmit={mode === 'signin' ? onSubmitSignIn : onSubmitSignUp}>
+              {mode === 'signup' && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-brand-text">{t('auth.firstName')}</span>
+                    <input
+                      className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-4 text-sm shadow-inner"
+                      {...signUpForm.register('firstName')}
+                      autoComplete="given-name"
+                    />
+                    {signUpForm.formState.errors.firstName && (
+                      <span className="text-sm text-brand-danger">{signUpForm.formState.errors.firstName.message}</span>
+                    )}
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-brand-text">{t('auth.lastName')}</span>
+                    <input
+                      className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-4 text-sm shadow-inner"
+                      {...signUpForm.register('lastName')}
+                      autoComplete="family-name"
+                    />
+                    {signUpForm.formState.errors.lastName && (
+                      <span className="text-sm text-brand-danger">{signUpForm.formState.errors.lastName.message}</span>
+                    )}
+                  </label>
+                </div>
+              )}
               <label className="block space-y-2">
                 <span className="text-sm font-medium text-brand-text">{t('auth.email')}</span>
                 <input
@@ -125,6 +239,56 @@ const AuthGateway = () => {
               </label>
               {mode === 'signup' && (
                 <>
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-brand-text">{t('auth.avatarLabel')}</span>
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 overflow-hidden rounded-full border border-subtle bg-brand-background">
+                        {avatarPreview ? (
+                          <img src={avatarPreview} alt={t('common.profileAvatarAlt') ?? 'Avatar'} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-brand-muted">🙂</div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={avatarInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) => {
+                              const files = event.target.files ?? undefined;
+                              signUpForm.setValue('avatar', files);
+                              if (avatarPreview) {
+                                URL.revokeObjectURL(avatarPreview);
+                              }
+                              if (files && files[0]) {
+                                setAvatarPreview(URL.createObjectURL(files[0]));
+                              } else {
+                                setAvatarPreview(null);
+                              }
+                            }}
+                          />
+                          <Button type="button" variant="secondary" onClick={() => avatarInputRef.current?.click()}>
+                            {t('auth.selectAvatar')}
+                          </Button>
+                        </div>
+                        <button
+                          type="button"
+                          className="text-left text-sm text-brand-muted underline"
+                          onClick={() => {
+                            signUpForm.setValue('avatar', undefined);
+                            if (avatarPreview) {
+                              URL.revokeObjectURL(avatarPreview);
+                            }
+                            setAvatarPreview(null);
+                          }}
+                        >
+                          {t('auth.removeAvatar')}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                   <label className="block space-y-2">
                     <span className="text-sm font-medium text-brand-text">{t('auth.confirmPassword')}</span>
                     <input
