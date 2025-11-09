@@ -106,33 +106,10 @@ const runGemini = async (payload: RequestPayload, signedUrls: string[]) => {
     }
   );
   if (!response.ok) {
-    throw new Error(`Gemini error ${response.status}`);
+    throw new Error(`Inference error ${response.status}`);
   }
   const json = (await response.json()) as GeminiResponse;
   return parseGemini(payload, json);
-};
-
-const buildFallback = (payload: RequestPayload) => {
-  const baseConfidence = 0.55;
-  const primaryLabel = `${payload.crop} stress`; // fallback label
-  return {
-    crop: payload.crop,
-    stage: payload.stage,
-    symptoms: payload.symptoms,
-    context: payload.context,
-    primary: {
-      label: primaryLabel,
-      confidence: baseConfidence,
-      status: 'stressed' as const,
-      description: 'Fallback generated without Gemini'
-    },
-    alternatives: [],
-    actions: [
-      'Inspecter de nouvelles photos sous différents angles',
-      'Vérifier les apports hydriques et nutritifs des 48 dernières heures',
-      'Programmer un suivi terrain dans 48 heures'
-    ]
-  };
 };
 
 serve(async (req) => {
@@ -147,12 +124,20 @@ serve(async (req) => {
     return new Response('Invalid JSON payload', { status: 400 });
   }
 
-  const baseResult = buildFallback(payload);
+  let signedUrls: string[] = [];
   try {
-    const signedUrls = await signImageUrls(payload.imagePaths ?? []);
+    signedUrls = await signImageUrls(payload.imagePaths ?? []);
+  } catch (error) {
+    console.error('Unable to sign Supabase images', error);
+  }
+  try {
     const geminiResult = await runGemini(payload, signedUrls);
+    if (!geminiResult) {
+      return new Response('AI service returned an empty result', { status: 502 });
+    }
+
     const now = new Date().toISOString();
-    const primary = geminiResult?.primary ?? baseResult.primary;
+    const primary = geminiResult.primary;
     return new Response(
       JSON.stringify({
         id: crypto.randomUUID(),
@@ -164,8 +149,10 @@ serve(async (req) => {
         status: primary.status,
         confidence: primary.confidence,
         primary,
-        alternatives: geminiResult?.alternatives ?? baseResult.alternatives,
-        actions: geminiResult?.actions ?? baseResult.actions
+        alternatives: geminiResult.alternatives ?? [],
+        actions: geminiResult.actions ?? [],
+        images: signedUrls,
+        imagePaths: payload.imagePaths ?? []
       }),
       {
         headers: { 'Content-Type': 'application/json' }
@@ -173,9 +160,6 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Edge inference error', error);
-    return new Response(JSON.stringify({ ...baseResult, id: crypto.randomUUID(), createdAt: new Date().toISOString() }), {
-      headers: { 'Content-Type': 'application/json' },
-      status: 200
-    });
+    return new Response('AI inference failed', { status: 500 });
   }
 });

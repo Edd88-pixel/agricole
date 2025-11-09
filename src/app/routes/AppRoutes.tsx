@@ -10,7 +10,9 @@ import GuidedScanForm from '@/features/diagnosis/components/GuidedScanForm';
 import HistoryList from '@/features/history/components/HistoryList';
 import KnowledgeBase from '@/features/kb/components/KnowledgeBase';
 import PreferencesPanel from '@/features/settings/components/PreferencesPanel';
+import ProfileSettingsPanel from '@/features/settings/components/ProfileSettingsPanel';
 import AdminOverview from '@/features/common/components/AdminOverview';
+import MediaLibrary from '@/features/library/components/MediaLibrary';
 import { useDataContext } from '@/app/providers/DataProvider';
 import { useTranslation } from 'react-i18next';
 import AuthGateway from '@/features/auth/components/AuthGateway';
@@ -23,13 +25,15 @@ const LazyHistoryDetails = lazy(() => import('@/features/history/components/Hist
 const AppRoutes = () => {
   const { session, isLoading: authLoading } = useAuthState();
   const user = session?.user ?? null;
-  const { profile, isLoading: profileLoading, completeOnboarding, updateLocale, error: profileError } =
+  const { profile, isLoading: profileLoading, completeOnboarding, updateLocale, updateProfileDetails, error: profileError } =
     useUserProfile(user);
   const {
     history,
     historyLoading,
     addResultToHistory,
     toggleResolved,
+    removeDiagnosis,
+    updateDiagnosis,
     articles,
     articlesLoading
   } = useDataContext();
@@ -61,11 +65,19 @@ const AppRoutes = () => {
     );
   }
 
+  const metaFirst = (session.user.user_metadata?.first_name as string | undefined)?.trim();
+  const metaLast = (session.user.user_metadata?.last_name as string | undefined)?.trim();
+  const userFirstName = profile?.firstName || metaFirst;
+  const userLastName = profile?.lastName || metaLast;
+  const computedName = [userFirstName, userLastName].filter((value) => value && value.length > 0).join(' ');
   const userName =
+    computedName ||
     profile?.displayName ||
     (session.user.user_metadata?.full_name as string | undefined) ||
     session.user.email?.split('@')[0] ||
     'Producer';
+  const greetingName = userFirstName ?? userName;
+  const userAvatar = profile?.avatarUrl ?? undefined;
 
   if (profileError) {
     return (
@@ -108,23 +120,48 @@ const AppRoutes = () => {
       <Route
         path="/"
         element={
-          <AppShell userName={userName} userEmail={session.user.email ?? ''} onSignOut={handleSignOut}>
-            <DashboardHome userName={userName} recent={history.slice(0, 3)} isLoading={historyLoading} />
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
+            <DashboardHome
+              userName={userName}
+              greetingName={greetingName}
+              recent={history.slice(0, 3)}
+              isLoading={historyLoading}
+            />
           </AppShell>
         }
       />
       <Route
         path="/dashboard"
         element={
-          <AppShell userName={userName} userEmail={session.user.email ?? ''} onSignOut={handleSignOut}>
-            <DashboardHome userName={userName} recent={history.slice(0, 3)} isLoading={historyLoading} />
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
+            <DashboardHome
+              userName={userName}
+              greetingName={greetingName}
+              recent={history.slice(0, 3)}
+              isLoading={historyLoading}
+            />
           </AppShell>
         }
       />
       <Route
         path="/diagnosis/quick"
         element={
-          <AppShell userName={userName} userEmail={session.user.email ?? ''} onSignOut={handleSignOut}>
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
             <QuickScanForm onResult={addResultToHistory} />
           </AppShell>
         }
@@ -132,7 +169,12 @@ const AppRoutes = () => {
       <Route
         path="/diagnosis/guided"
         element={
-          <AppShell userName={userName} userEmail={session.user.email ?? ''} onSignOut={handleSignOut}>
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
             <GuidedScanForm onResult={addResultToHistory} />
           </AppShell>
         }
@@ -140,15 +182,30 @@ const AppRoutes = () => {
       <Route
         path="/history"
         element={
-          <AppShell userName={userName} userEmail={session.user.email ?? ''} onSignOut={handleSignOut}>
-            <HistoryList entries={history} onToggleResolved={toggleResolved} />
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
+            <HistoryList
+              entries={history}
+              onToggleResolved={toggleResolved}
+              onDelete={removeDiagnosis}
+              onUpdate={updateDiagnosis}
+            />
           </AppShell>
         }
       />
       <Route
         path="/history/:id"
         element={
-          <AppShell userName={userName} userEmail={session.user.email ?? ''} onSignOut={handleSignOut}>
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
             <Suspense fallback={<Skeleton className="h-64 w-full" />}>
               <LazyHistoryDetails />
             </Suspense>
@@ -158,23 +215,77 @@ const AppRoutes = () => {
       <Route
         path="/knowledge-base"
         element={
-          <AppShell userName={userName} userEmail={session.user.email ?? ''} onSignOut={handleSignOut}>
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
             <KnowledgeBase articles={articles} isLoading={articlesLoading} />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/library"
+        element={
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
+            <MediaLibrary entries={history} isLoading={historyLoading} />
           </AppShell>
         }
       />
       <Route
         path="/settings"
         element={
-          <AppShell userName={userName} userEmail={session.user.email ?? ''} onSignOut={handleSignOut}>
-            <PreferencesPanel language={i18n.language} onChangeLanguage={handleLanguageChange} />
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
+            <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+              <ProfileSettingsPanel
+                profile={profile}
+                onUpdate={updateProfileDetails}
+                greetingName={greetingName}
+                userEmail={session.user.email ?? ''}
+              />
+              <PreferencesPanel language={i18n.language} onChangeLanguage={handleLanguageChange} />
+            </div>
+          </AppShell>
+        }
+      />
+      <Route
+        path="/settings/profile"
+        element={
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
+            <ProfileSettingsPanel
+              profile={profile}
+              onUpdate={updateProfileDetails}
+              greetingName={greetingName}
+              userEmail={session.user.email ?? ''}
+            />
           </AppShell>
         }
       />
       <Route
         path="/admin"
         element={
-          <AppShell userName={userName} userEmail={session.user.email ?? ''} onSignOut={handleSignOut}>
+          <AppShell
+            userName={userName}
+            userEmail={session.user.email ?? ''}
+            userAvatar={userAvatar}
+            onSignOut={handleSignOut}
+          >
             <AdminOverview pendingFeedback={3} pendingArticles={2} />
           </AppShell>
         }

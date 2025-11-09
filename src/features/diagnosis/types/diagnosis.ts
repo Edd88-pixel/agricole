@@ -12,6 +12,8 @@ export type DiagnosisResult = {
   primary: DiagnosisClass;
   alternatives: DiagnosisClass[];
   actions: string[];
+  images: string[];
+  imagePaths?: string[];
 };
 
 export type DiagnosisClass = {

@@ -7,11 +7,13 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Skeleton from '@/components/ui/Skeleton';
 import { useTranslation } from 'react-i18next';
 import { useDataContext } from '@/app/providers/DataProvider';
+import { useDiagnosisReport } from '@/features/diagnosis/hooks/useDiagnosisReport';
 
 const HistoryReport = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
   const { history, historyLoading } = useDataContext();
+  const { generateReport, isGenerating } = useDiagnosisReport({ locale: i18n.language });
 
   const entry = useMemo(() => history.find((item) => item.id === id), [history, id]);
 
@@ -44,7 +46,21 @@ const HistoryReport = () => {
         <h2 className="text-sm font-semibold text-brand-text">Actions</h2>
         <Checklist items={entry.actions.map((action, index) => ({ id: `${entry.id}-${index}`, label: action }))} />
       </section>
-      <Button variant="secondary">{t('diagnosis.export')}</Button>
+      {entry.images.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-brand-text">{t('diagnosis.mediaTitle', 'Images analysées')}</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {entry.images.map((image) => (
+              <figure key={image} className="overflow-hidden rounded-2xl border border-brand-secondary/10 bg-brand-background">
+                <img src={image} alt={t('diagnosis.mediaAlt', { defaultValue: 'Photo analysée' }) ?? 'Photo analysée'} className="h-40 w-full object-cover" loading="lazy" />
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
+      <Button variant="secondary" onClick={() => generateReport(entry)} isLoading={isGenerating}>
+        {t('diagnosis.export')}
+      </Button>
     </Card>
   );
 };

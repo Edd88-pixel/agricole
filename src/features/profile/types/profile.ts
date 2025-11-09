@@ -4,6 +4,10 @@ export type UserProfile = {
   id: string;
   email?: string;
   displayName: string;
+  firstName?: string;
+  lastName?: string;
+  avatarPath?: string;
+  avatarUrl?: string;
   locale: SupportedLocale;
   objectives?: string;
   location?: string;
@@ -22,6 +26,9 @@ export type ProfileInsert = {
   id: string;
   email?: string;
   displayName: string;
+  firstName?: string;
+  lastName?: string;
+  avatarPath?: string;
   locale: SupportedLocale;
   objectives?: string;
   location?: string;
