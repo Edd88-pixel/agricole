@@ -10,7 +10,8 @@ const ResultPanel = ({ result }: { result: DiagnosisResult }) => {
   const statusLabel = {
     healthy: t('common.statusHealthy'),
     stressed: t('common.statusStressed'),
-    sick: t('common.statusSick')
+    sick: t('common.statusSick'),
+    pending: t('common.statusPending')
   }[result.status];
 
   const lowConfidence = result.confidence < 0.4;

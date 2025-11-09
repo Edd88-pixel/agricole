@@ -32,7 +32,7 @@ const DashboardHome = ({ userName, recent, isLoading }: Props) => {
                   </div>
                   <p className="mt-2 text-sm text-brand-muted">{t('dashboard.quickScanDescription')}</p>
                 </div>
-                <Button asChild size="lg">
+                <Button asChild to="/diagnosis/quick" size="lg">
                   <Link to="/diagnosis/quick">{t('dashboard.quickScan')}</Link>
                 </Button>
               </div>
@@ -46,7 +46,7 @@ const DashboardHome = ({ userName, recent, isLoading }: Props) => {
                   </div>
                   <p className="mt-2 text-sm text-brand-muted">{t('dashboard.guidedScanDescription')}</p>
                 </div>
-                <Button variant="secondary" asChild size="lg">
+                <Button variant="secondary" asChild size="lg" to="/diagnosis/guided">
                   <Link to="/diagnosis/guided">{t('dashboard.guidedScan')}</Link>
                 </Button>
               </div>
@@ -56,7 +56,7 @@ const DashboardHome = ({ userName, recent, isLoading }: Props) => {
         <Card className="space-y-3">
           <h2 className="text-lg font-semibold text-brand-text">{t('dashboard.knowledgeBase')}</h2>
           <p className="mt-2 text-sm text-brand-muted">📚</p>
-          <Button className="mt-4" variant="ghost" asChild>
+          <Button className="mt-4" variant="ghost" asChild to="/knowledge-base">
             <Link to="/knowledge-base">{t('dashboard.knowledgeBase')}</Link>
           </Button>
         </Card>
@@ -65,7 +65,7 @@ const DashboardHome = ({ userName, recent, isLoading }: Props) => {
         <Card className="lg:col-span-2 space-y-4">
           <header className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-brand-text">{t('dashboard.history')}</h2>
-            <Button variant="ghost" asChild>
+            <Button variant="ghost" asChild to="/history">
               <Link to="/history">{t('dashboard.history')}</Link>
             </Button>
           </header>

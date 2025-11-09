@@ -6,23 +6,23 @@ export default {
     extend: {
       colors: {
         brand: {
-          primary: '#0B6E4F',
-          accent: '#2AAE66',
-          secondary: '#107C8C',
-          background: '#F6FBF7',
-          surface: '#FFFFFF',
-          text: '#0B1F14',
-          muted: '#5B6B63',
-          danger: '#E24B4B',
-          warning: '#F29C1F',
-          bright: '#FFC857'
+          primary: 'rgb(var(--brand-primary) / <alpha-value>)',
+          accent: 'rgb(var(--brand-accent) / <alpha-value>)',
+          secondary: 'rgb(var(--brand-secondary) / <alpha-value>)',
+          background: 'rgb(var(--brand-background) / <alpha-value>)',
+          surface: 'rgb(var(--brand-surface) / <alpha-value>)',
+          text: 'rgb(var(--brand-text) / <alpha-value>)',
+          muted: 'rgb(var(--brand-muted) / <alpha-value>)',
+          danger: 'rgb(var(--brand-danger) / <alpha-value>)',
+          warning: 'rgb(var(--brand-warning) / <alpha-value>)',
+          bright: 'rgb(var(--brand-bright) / <alpha-value>)'
         }
       },
       boxShadow: {
         card: '0px 8px 20px rgba(11, 30, 20, 0.08)'
       },
       borderColor: {
-        subtle: 'rgba(11, 30, 20, 0.06)'
+        subtle: 'rgb(var(--brand-border-subtle) / <alpha-value>)'
       }
     }
   }

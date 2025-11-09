@@ -36,7 +36,7 @@ const AppShell = ({ children, userName, userEmail, onSignOut }: AppShellProps) =
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-brand-background via-white to-brand-background text-brand-text transition-colors dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-white">
+    <div className="relative min-h-screen bg-gradient-to-br from-brand-background via-white to-brand-background text-brand-text transition-colors dark:from-transparent dark:via-transparent dark:to-transparent dark:text-brand-text">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-brand-primary/10 via-transparent to-transparent" />
       <header className="border-b border-subtle/60 bg-brand-surface/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
@@ -57,11 +57,11 @@ const AppShell = ({ children, userName, userEmail, onSignOut }: AppShellProps) =
             <LanguageSelector value={i18n.language} onChange={changeLanguage} />
             <ThemeSelector value={theme} onChange={setTheme} />
             <div className="hidden text-right md:block">
-              <p className="text-sm font-semibold text-brand-text dark:text-white">{userName}</p>
+              <p className="text-sm font-semibold text-brand-text">{userName}</p>
               <p className="text-xs text-brand-muted">{userEmail}</p>
             </div>
-            <Button variant="secondary" asChild>
-              <Link to="/diagnosis/quick">{t('dashboard.createDiagnosis')}</Link>
+            <Button variant="secondary" asChild to="/diagnosis/quick">
+              {t('dashboard.createDiagnosis')}
             </Button>
             <Button variant="ghost" onClick={onSignOut} className="hidden md:inline-flex">
               {t('common.signOut')}
@@ -108,7 +108,7 @@ const AppShell = ({ children, userName, userEmail, onSignOut }: AppShellProps) =
                       to={item.to}
                       className={({ isActive }) =>
                         `flex items-center gap-2 rounded-md px-3 py-2 text-base font-medium focus-ring ${
-                          isActive ? 'bg-brand-primary text-white' : 'text-brand-text hover:bg-brand-background'
+                          isActive ? 'bg-brand-primary text-white' : 'text-brand-text hover:bg-brand-background/70'
                         }`
                       }
                       onClick={() => setMobileOpen(false)}
@@ -141,7 +141,7 @@ const AppShell = ({ children, userName, userEmail, onSignOut }: AppShellProps) =
                 to={item.to}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium focus-ring ${
-                    isActive ? 'bg-brand-primary text-white shadow-card' : 'text-brand-text hover:bg-brand-background'
+                    isActive ? 'bg-brand-primary text-white shadow-card' : 'text-brand-text hover:bg-brand-background/70'
                   }`
                 }
               >
@@ -152,7 +152,7 @@ const AppShell = ({ children, userName, userEmail, onSignOut }: AppShellProps) =
           </nav>
         </aside>
         <main className="flex-1 space-y-8 pb-20">
-          <div className="rounded-3xl border border-white/60 bg-white/80 p-8 shadow-card backdrop-blur dark:border-white/10 dark:bg-slate-900/70">
+          <div className="rounded-3xl border border-subtle/60 bg-brand-surface/80 p-8 dark:p-10 lg:dark:p-12 shadow-card backdrop-blur dark:border-subtle/20 dark:bg-brand-surface/80">
             {children}
           </div>
         </main>

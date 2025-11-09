@@ -16,7 +16,7 @@ type EdgeDiagnosisResponse = Omit<DiagnosisResult, 'createdAt'> & {
   createdAt?: string;
 };
 
-const STATUS_BY_SCORE = (score: number): DiagnosisStatus => {
+const STATUS_BY_SCORE = (score: number): "healthy" | "stressed" | "sick" => {
   if (score >= 0.7) return 'sick';
   if (score >= 0.4) return 'stressed';
   return 'healthy';
@@ -36,7 +36,7 @@ const buildFallback = (payload: InferenceInput): DiagnosisResult => {
   const primary = classes[0] ?? {
     label: `${payload.crop} healthy`,
     confidence: 0.5,
-    status: 'healthy' as const,
+    status: 'healthy',
     description: 'Baseline confidence'
   };
 
@@ -69,7 +69,8 @@ export const runInference = async (payload: InferenceInput): Promise<DiagnosisRe
   }
 
   try {
-    const response = await invokeEdgeFunction<EdgeDiagnosisResponse>(appConfig.supabase.functions.diagnosisInfer, {
+    const diagnosisInferFn = appConfig.supabase.functions.diagnosisInfer ?? '';
+    const response = await invokeEdgeFunction<EdgeDiagnosisResponse>(diagnosisInferFn, {
       body: {
         crop: payload.crop,
         stage: payload.stage,

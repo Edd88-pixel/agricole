@@ -9,10 +9,10 @@ export const invokeEdgeFunction = async <TResult, TPayload = Record<string, unkn
   name: string,
   options: InvokeOptions<TPayload>
 ): Promise<TResult> => {
-  const { data, error } = await supabase.functions.invoke<TResult>(name, {
+  const { data, error } = await supabase.functions.invoke(name, {
     body: options.body,
     headers: options.headers
-  });
+  }) as { data: TResult | null; error: Error | null };
 
   if (error) {
     throw new Error(error.message);

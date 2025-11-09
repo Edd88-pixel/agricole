@@ -18,16 +18,16 @@ type GeminiResponse = {
   candidates?: GeminiCandidate[];
 };
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const APP_URL = Deno.env.get('APP_URL');
+const APP_SERVICE_KEY = Deno.env.get('APP_SERVICE_KEY');
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY');
 const DIAGNOSIS_BUCKET = Deno.env.get('STORAGE_BUCKET_DIAGNOSIS') ?? 'diagnosis-images';
 
-if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !GEMINI_KEY) {
+if (!APP_URL || !APP_SERVICE_KEY || !GEMINI_KEY) {
   throw new Error('Missing Supabase or Gemini configuration.');
 }
 
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+const supabase = createClient(APP_URL, APP_SERVICE_KEY, {
   auth: { persistSession: false }
 });
 
@@ -95,7 +95,7 @@ const parseGemini = (payload: RequestPayload, body: GeminiResponse) => {
 };
 
 const runGemini = async (payload: RequestPayload, signedUrls: string[]) => {
-  const model = payload.model ?? 'gemini-1.5-pro-latest';
+  const model = payload.model ?? 'gemini-2.5-flash';
   const requestBody = buildPrompt(payload, signedUrls);
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,

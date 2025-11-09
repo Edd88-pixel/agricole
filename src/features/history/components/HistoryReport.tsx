@@ -16,7 +16,7 @@ const HistoryReport = () => {
   const entry = useMemo(() => history.find((item) => item.id === id), [history, id]);
 
   if (historyLoading) {
-    return <Skeleton className="h-48 w-full" role="status" aria-label={t('common.loading')} />;
+    return <Skeleton className="h-48 w-full" />;
   }
 
   if (!entry) {

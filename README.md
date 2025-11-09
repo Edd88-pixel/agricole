@@ -123,8 +123,8 @@ Application web React + TypeScript + Tailwind qui pilote un diagnostic agricole 
      ```bash
      supabase secrets set \
        GEMINI_API_KEY=AIzaSyAjo6xlBHdw9U_znTY_r244gb5ttqGNRaE \
-       SUPABASE_URL=https://voxyxpwtvfokiqqdzerl.supabase.co \
-       SUPABASE_SERVICE_ROLE_KEY=<VOTRE_SERVICE_ROLE_KEY> \
+       APP_URL=https://voxyxpwtvfokiqqdzerl.supabase.co \
+       APP_SERVICE_KEY=<VOTRE_SERVICE_ROLE_KEY> \
        STORAGE_BUCKET_DIAGNOSIS=diagnosis-images \
        --project-ref voxyxpwtvfokiqqdzerl
      ```
