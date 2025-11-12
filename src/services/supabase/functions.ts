@@ -9,13 +9,21 @@ export const invokeEdgeFunction = async <TResult, TPayload = Record<string, unkn
   name: string,
   options: InvokeOptions<TPayload>
 ): Promise<TResult> => {
-  const { data, error } = await supabase.functions.invoke(name, {
-    body: options.body,
-    headers: options.headers
-  }) as { data: TResult | null; error: Error | null };
+  // Keep headers simple to avoid unnecessary CORS preflights
+  const defaultHeaders = { 'Content-Type': 'application/json' } as const;
+
+  // Force JSON encoding to avoid cases where fetch sends "[object Object]"
+  const encodedBody = (options?.body ?? null) as unknown as Record<string, unknown> | null;
+
+  const { data, error }: { data: TResult | null; error: any } = await supabase.functions.invoke(name, {
+    body: encodedBody ? JSON.stringify(encodedBody) : undefined,
+    headers: { ...defaultHeaders, ...(options.headers ?? {}) }
+  });
 
   if (error) {
-    throw new Error(error.message);
+    const status = typeof error.status === 'number' ? ` (status ${error.status})` : '';
+    const details = error.context ? `: ${JSON.stringify(error.context)}` : '';
+    throw new Error(`${error.message}${status}${details}`);
   }
 
   if (!data) {

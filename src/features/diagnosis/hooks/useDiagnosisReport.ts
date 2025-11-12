@@ -36,4 +36,3 @@ export const useDiagnosisReport = (options?: ReportOptions) => {
   return { generateReport, isGenerating, error };
 };
 
-export type UseDiagnosisReportReturn = ReturnType<typeof useDiagnosisReport>;

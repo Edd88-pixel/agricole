@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from './client';
 
 type AuthState = {
@@ -44,15 +44,26 @@ export const useAuthState = (): AuthState => {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
+
+    const hydrateSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) {
+        return;
+      }
       setSession(data.session);
       setIsLoading(false);
-    });
+    };
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-    });
+    void hydrateSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, newSession: Session | null) => {
+        if (!mounted) {
+          return;
+        }
+        setSession(newSession);
+      }
+    );
 
     return () => {
       mounted = false;

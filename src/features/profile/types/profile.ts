@@ -36,6 +36,7 @@ export type ProfileInsert = {
   onboardingCompleted?: boolean;
 };
 
-export type ProfileUpdate = Partial<Omit<ProfileInsert, 'id'>> & {
+export type ProfileUpdate = Partial<Omit<ProfileInsert, 'id' | 'avatarPath'>> & {
+  avatarPath?: string | null;
   onboardingCompleted?: boolean;
 };

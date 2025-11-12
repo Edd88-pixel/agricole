@@ -137,4 +137,3 @@ export const useUserProfile = (user: User | null | undefined): ProfileState => {
   );
 };
 
-export type UseUserProfileReturn = ReturnType<typeof useUserProfile>;

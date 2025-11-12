@@ -18,13 +18,14 @@ export const appConfig = {
       profile: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_PROFILE', 'profile-avatars')
     },
     functions: {
-      diagnosisInfer: getEnvValue('VITE_SUPABASE_FUNCTION_DIAGNOSIS', 'diagnosis-infer'),
-      knowledgeChat: getEnvValue('VITE_SUPABASE_FUNCTION_KNOWLEDGE', 'knowledge-chat')
+      // Utilise d'abord les variables d'env. Par défaut, aligne sur les noms réels fournis
+      diagnosisInfer: getEnvValue('VITE_SUPABASE_FUNCTION_DIAGNOSIS', 'dynamic-handler'),
+      knowledgeChat: getEnvValue('VITE_SUPABASE_FUNCTION_KNOWLEDGE', 'super-function')
     }
   },
   gemini: {
-    model: getEnvValue('VITE_GEMINI_MODEL', 'gemini-1.5-pro-latest')
+    // Modèle par défaut demandé: gemini-2.5-flash
+    model: getEnvValue('VITE_GEMINI_MODEL', 'gemini-2.5-flash')
   }
 } as const;
 
-export type AppConfig = typeof appConfig;

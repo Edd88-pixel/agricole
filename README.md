@@ -21,7 +21,7 @@ Application web React + TypeScript + Tailwind qui pilote un diagnostic agricole 
    ```ini
    VITE_SUPABASE_URL=https://voxyxpwtvfokiqqdzerl.supabase.co
    VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZveHl4cHd0dmZva2lxcWR6ZXJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2MTc1MDIsImV4cCI6MjA3ODE5MzUwMn0.LMgQIlPHUXDdV9LBefMbUrTVEfmZ7tvIBNgysi3cN0A
-   VITE_GEMINI_MODEL=gemini-1.5-pro-latest
+   VITE_GEMINI_MODEL=gemini-2.5-flash
    VITE_SUPABASE_STORAGE_BUCKET_DIAGNOSIS=diagnosis-images
    VITE_SUPABASE_STORAGE_BUCKET_REPORTS=diagnosis-reports
    VITE_SUPABASE_STORAGE_BUCKET_PROFILE=profile-avatars
@@ -186,6 +186,18 @@ Application web React + TypeScript + Tailwind qui pilote un diagnostic agricole 
   end;
   $$;
   ```
+  
+  -- Correctifs SQL rapides (si vous voyez "column diagnoses.user_id does not exist")
+  -- Ce bloc est idempotent et peut être rejoué sans risque.
+  ```sql
+  alter table public.diagnoses
+    add column if not exists user_id uuid references auth.users(id) on delete cascade,
+    add column if not exists created_at timestamptz not null default now();
+
+  -- Facultatif mais recommandé pour les performances
+  create index if not exists idx_diagnoses_user_id on public.diagnoses(user_id);
+  create index if not exists idx_diagnoses_created_at on public.diagnoses(created_at desc);
+  ```
 3. **Buckets de stockage privés**
    ```bash
   supabase storage create-bucket diagnosis-images --public=false
@@ -252,6 +264,294 @@ Application web React + TypeScript + Tailwind qui pilote un diagnostic agricole 
 - Ajuster l’i18n (fichiers `src/app/i18n/messages/*`).
 - Ajouter de nouveaux contenus dans la base via `kb_articles` ou l’interface Admin.
 - Pour toute modification du backend, regénérer la fonction edge et redéployer via `supabase functions deploy`.
+
+### Activer l’IA pour la Base de connaissances (Edge `super-function`)
+
+Le front appelle la fonction Edge `super-function`. Le dossier `supabase/functions/super-function` fournit une implémentation qui:
+- gère le CORS correctement,
+- signe les images envoyées (bucket `diagnosis-images`),
+- appelle Gemini (`gemini-2.5-flash`) pour générer la réponse et renvoyer des liens `links[]`.
+
+Déploiement:
+
+```bash
+supabase login
+supabase link --project-ref <voxyxpwtvfokiqqdzerl>
+supabase secrets set \
+  APP_URL="https://voxyxpwtvfokiqqdzerl.supabase.co" \
+  APP_SERVICE_KEY="<SERVICE_ROLE_KEY>" \
+  GEMINI_API_KEY="<YOUR_GEMINI_KEY>" \
+  STORAGE_BUCKET_DIAGNOSIS="diagnosis-images"
+
+supabase functions deploy super-function
+```
+
+La page “Base de connaissances” affichera alors des liens recommandés cliquables (section de droite). Si l’IA est indisponible, un fallback lisible est renvoyé.
+
+### Correctif DB — colonne `images` manquante dans `diagnoses`
+
+Si vous obtenez l’erreur PostgREST:
+
+```
+{"code":"PGRST204","message":"Could not find the 'images' column of 'diagnoses' in the schema cache"}
+```
+
+exécutez le script SQL suivant dans Supabase (SQL Editor), puis réessayez. Il crée la table si elle n’existe pas, ajoute la colonne `images` si besoin, (ré)active les RLS et ajoute des politiques simples par utilisateur.
+
+```sql
+-- 1) Table `diagnoses` (création si manquante)
+create table if not exists public.diagnoses (
+  id uuid primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  crop text not null,
+  stage text not null,
+  symptoms text[] not null default '{}',
+  context text,
+  created_at timestamptz not null default now(),
+  status text,
+  confidence double precision,
+  primary jsonb not null,
+  alternatives jsonb,
+  actions text[],
+  resolved boolean not null default false
+);
+
+-- 2) Colonne `images` (ajout si manquante)
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'diagnoses' and column_name = 'images'
+  ) then
+    alter table public.diagnoses add column images text[];
+  end if;
+end $$;
+
+-- 3) Index utiles
+create index if not exists diagnoses_user_id_idx on public.diagnoses (user_id);
+create index if not exists diagnoses_created_at_idx on public.diagnoses (created_at desc);
+
+-- 4) RLS (+ politiques par utilisateur)
+alter table public.diagnoses enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='diagnoses' and policyname='Users can select own diagnoses'
+  ) then
+    create policy "Users can select own diagnoses" on public.diagnoses
+      for select using (auth.uid() = user_id);
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='diagnoses' and policyname='Users can insert own diagnoses'
+  ) then
+    create policy "Users can insert own diagnoses" on public.diagnoses
+      for insert with check (auth.uid() = user_id);
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='diagnoses' and policyname='Users can update own diagnoses'
+  ) then
+    create policy "Users can update own diagnoses" on public.diagnoses
+      for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='diagnoses' and policyname='Users can delete own diagnoses'
+  ) then
+    create policy "Users can delete own diagnoses" on public.diagnoses
+      for delete using (auth.uid() = user_id);
+  end if;
+end $$;
+
+-- 5) Rafraîchit le cache de schéma PostgREST (utile après ALTER TABLE)
+notify pgrst, 'reload schema';
+```
+
+Ensuite, relancez le diagnostic depuis l’application. L’upsert enverra bien `images: text[]` et n’échouera plus.
+
+### Correctif DB — colonne `primary` manquante (ou mal typée)
+
+PostgREST peut aussi renvoyer:
+
+```
+{"code":"PGRST204","message":"Could not find the 'primary' column of 'diagnoses' in the schema cache"}
+```
+
+`primary` est un mot-clé SQL. Il faut déclarer la colonne entre guillemets: `"primary"`. Exécutez ce script pour ajouter/corriger la colonne et rafraîchir le cache:
+
+```sql
+-- Ajoute la colonne "primary" au bon type si manquante
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'diagnoses' and column_name = 'primary'
+  ) then
+    alter table public.diagnoses add column "primary" jsonb not null default '{}'::jsonb;
+  end if;
+end $$;
+
+-- Si la colonne existe mais avec un autre type, on la convertit en jsonb
+do $$
+declare
+  col_type text;
+begin
+  select data_type into col_type
+  from information_schema.columns
+  where table_schema='public' and table_name='diagnoses' and column_name='primary';
+
+  if col_type is not null and col_type <> 'jsonb' then
+    alter table public.diagnoses
+      alter column "primary" type jsonb using "primary"::jsonb;
+  end if;
+end $$;
+
+-- Rafraîchit le cache de schéma PostgREST
+notify pgrst, 'reload schema';
+```
+
+Après exécution, réessayez l’enregistrement d’un diagnostic.
+
+### Correctif DB — types sûrs pour `status` et `confidence`
+
+Si votre base a été initialisée différemment et que les types ne correspondent pas, exécutez ce correctif pour forcer:
+
+```sql
+-- status doit être du texte
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='diagnoses' and column_name='status' and data_type <> 'text'
+  ) then
+    alter table public.diagnoses alter column status type text using status::text;
+  end if;
+end $$;
+
+-- confidence doit être en double précision (numérique 0..1)
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='diagnoses' and column_name='confidence' and data_type <> 'double precision'
+  ) then
+    alter table public.diagnoses alter column confidence type double precision using nullif(confidence::text, '')::double precision;
+  end if;
+end $$;
+
+-- Rafraîchit le cache
+notify pgrst, 'reload schema';
+```
+
+Note: côté application, la valeur envoyée pour `confidence` est désormais normalisée en [0,1] même si le service renvoie des catégories telles que `'low' | 'medium' | 'high'`.
+
+### Créer la table de feedback utilisateur (si retour impossible)
+
+Si l’interface affiche « Impossible d’enregistrer le retour », créez la table et les politiques suivantes:
+
+```sql
+create table if not exists public.diagnosis_feedback (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  diagnosis_id uuid not null references public.diagnoses(id) on delete cascade,
+  useful boolean not null,
+  comment text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.diagnosis_feedback enable row level security;
+
+-- Politiques: un utilisateur peut écrire/voir ses propres retours
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='diagnosis_feedback' and policyname='Feedback insert own'
+  ) then
+    create policy "Feedback insert own" on public.diagnosis_feedback
+      for insert with check (
+        auth.uid() = user_id
+        and exists (
+          select 1 from public.diagnoses d where d.id = diagnosis_id and d.user_id = auth.uid()
+        )
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='diagnosis_feedback' and policyname='Feedback select own'
+  ) then
+    create policy "Feedback select own" on public.diagnosis_feedback
+      for select using (auth.uid() = user_id);
+  end if;
+end $$;
+
+create index if not exists diagnosis_feedback_user_idx on public.diagnosis_feedback(user_id);
+create index if not exists diagnosis_feedback_diag_idx on public.diagnosis_feedback(diagnosis_id);
+
+notify pgrst, 'reload schema';
+```
+
+-- Si la table existait déjà sans défaut, applique un DEFAULT auth.uid()
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='diagnosis_feedback' and column_name='user_id'
+  ) then
+    alter table public.diagnosis_feedback alter column user_id set default auth.uid();
+  end if;
+end $$;
+
+Le client n’a pas besoin d’envoyer `user_id` (défaut = auth.uid()).
+
+### Correctif DB — contrainte sur `primary_result` (schéma hérité)
+
+Si vous voyez l’erreur suivante lors de l’upsert:
+
+```
+{"code":"23502","message":"null value in column \"primary_result\" of relation \"diagnoses\" violates not-null constraint"}
+```
+
+cela signifie que votre schéma historique utilisait `primary_result` alors que l’application utilise la colonne citée `"primary"`. Exécutez ce script idempotent selon les cas:
+
+```sql
+-- Si `primary_result` existe et que "primary" n'existe PAS: on renomme proprement
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='diagnoses' and column_name='primary_result'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='diagnoses' and column_name='primary'
+  ) then
+    execute 'alter table public.diagnoses rename column primary_result to "primary"';
+  end if;
+end $$;
+
+-- Si les deux colonnes existent: on désactive la contrainte bloquante et on synchronise une fois
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='diagnoses' and column_name='primary_result'
+  ) and exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='diagnoses' and column_name='primary'
+  ) then
+    -- enlève NOT NULL et met un défaut neutre
+    alter table public.diagnoses alter column primary_result drop not null;
+    alter table public.diagnoses alter column primary_result set default '{}'::jsonb;
+    -- copie la valeur depuis "primary" pour les lignes vides
+    update public.diagnoses
+      set primary_result = coalesce(primary_result, "primary", '{}'::jsonb)
+      where primary_result is null;
+  end if;
+end $$;
+
+-- Rafraîchit le cache PostgREST
+notify pgrst, 'reload schema';
+```
+
+Après ce correctif, l’application écrira/ira lire dans `"primary"` et la contrainte sur `primary_result` ne bloquera plus.
 
 ## 7. Checklist de validation
 - [ ] Créer un compte utilisateur et se connecter (auth Supabase active).

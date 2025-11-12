@@ -4,6 +4,19 @@ import type { DiagnosisResult } from '../types/diagnosis';
 const BASE_MARGIN = 48;
 const LINE_HEIGHT = 18;
 
+const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
+  const source = view.buffer;
+  if (source instanceof ArrayBuffer) {
+    if (view.byteOffset === 0 && view.byteLength === source.byteLength) {
+      return source;
+    }
+    return source.slice(view.byteOffset, view.byteOffset + view.byteLength);
+  }
+  const buffer = new ArrayBuffer(view.byteLength);
+  new Uint8Array(buffer).set(view);
+  return buffer;
+};
+
 const toUint8Array = (base64: string): Uint8Array => {
   if (typeof globalThis.atob === 'function') {
     const binaryString = globalThis.atob(base64);
@@ -14,13 +27,9 @@ const toUint8Array = (base64: string): Uint8Array => {
     }
     return bytes;
   }
-  const bufferCtor = (globalThis as typeof globalThis & { Buffer?: { from: (input: string, encoding: string) => Uint8Array | { buffer: ArrayBuffer; byteOffset: number; byteLength: number } } }).Buffer;
+  const bufferCtor = (globalThis as typeof globalThis & { Buffer?: { from: (input: string, encoding: string) => Uint8Array } }).Buffer;
   if (bufferCtor) {
-    const buffer = bufferCtor.from(base64, 'base64') as unknown as Uint8Array;
-    if (buffer instanceof Uint8Array) {
-      return buffer;
-    }
-    return new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+    return bufferCtor.from(base64, 'base64');
   }
   throw new Error('No base64 decoder available');
 };
@@ -191,6 +200,19 @@ export const generateDiagnosisReport = async (
     font: boldFont,
     color: rgb(0.07, 0.34, 0.24)
   });
+  const toText = (action: unknown): string => {
+    if (typeof action === 'string') return action;
+    if (action && typeof action === 'object') {
+      const a = action as Record<string, unknown>;
+      const label = typeof a.label === 'string' ? a.label : undefined;
+      const description = typeof a.description === 'string' ? a.description : undefined;
+      if (label && description) return `${label} — ${description}`;
+      if (label) return label;
+      if (description) return description;
+      try { return JSON.stringify(a); } catch { return String(action); }
+    }
+    return String(action ?? '');
+  };
   result.actions.forEach((action, index) => {
     const y = actionsY - LINE_HEIGHT * (index + 1);
     page.drawRectangle({
@@ -200,7 +222,7 @@ export const generateDiagnosisReport = async (
       height: 8,
       color: rgb(0.11, 0.69, 0.42)
     });
-    page.drawText(action, {
+    page.drawText(toText(action), {
       x: BASE_MARGIN + 14,
       y,
       size: 11,
@@ -306,7 +328,8 @@ export const generateDiagnosisReport = async (
 
   const pdfBytes = await document.save();
   const array = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
-  return new Blob([array.buffer.slice(array.byteOffset, array.byteOffset + array.byteLength)], {
+  const buffer = toArrayBuffer(array);
+  return new Blob([buffer], {
     type: 'application/pdf'
   });
 };

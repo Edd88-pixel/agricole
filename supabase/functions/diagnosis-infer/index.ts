@@ -1,6 +1,20 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.4';
 
+const buildCors = (req: Request): HeadersInit => {
+  const origin = req.headers.get('origin') ?? '*';
+  const requested =
+    req.headers.get('access-control-request-headers') ?? 'authorization, x-client-info, apikey, content-type';
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Headers': requested,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+    'Access-Control-Allow-Credentials': 'true',
+    Vary: 'Origin'
+  } as const;
+};
+
 type RequestPayload = {
   crop: string;
   stage: string;
@@ -113,15 +127,19 @@ const runGemini = async (payload: RequestPayload, signedUrls: string[]) => {
 };
 
 serve(async (req) => {
+  const corsHeaders = buildCors(req);
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
   let payload: RequestPayload;
   try {
     payload = (await req.json()) as RequestPayload;
   } catch {
-    return new Response('Invalid JSON payload', { status: 400 });
+    return new Response('Invalid JSON payload', { status: 400, headers: corsHeaders });
   }
 
   let signedUrls: string[] = [];
@@ -155,11 +173,11 @@ serve(async (req) => {
         imagePaths: payload.imagePaths ?? []
       }),
       {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       }
     );
   } catch (error) {
     console.error('Edge inference error', error);
-    return new Response('AI inference failed', { status: 500 });
+    return new Response('AI inference failed', { status: 500, headers: corsHeaders });
   }
 });

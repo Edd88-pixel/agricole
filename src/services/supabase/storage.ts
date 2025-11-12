@@ -2,8 +2,8 @@ import { nanoid } from 'nanoid';
 import { supabase } from './client';
 import { appConfig } from '@/services/config';
 
-const DIAGNOSIS_BUCKET = appConfig.supabase.storageBuckets.diagnosis;
-const PROFILE_BUCKET = appConfig.supabase.storageBuckets.profile;
+const DIAGNOSIS_BUCKET = appConfig.supabase.storageBuckets.diagnosis ?? 'diagnosis-images';
+const PROFILE_BUCKET = appConfig.supabase.storageBuckets.profile ?? 'profile-avatars';
 
 const inferExtension = (file: File) => {
   const parts = file.name.split('.');
@@ -39,8 +39,6 @@ export const uploadDiagnosisImages = async (files: File[]): Promise<string[]> =>
   return uploaded;
 };
 
-export { DIAGNOSIS_BUCKET };
-
 const ensureUser = async () => {
   const { data, error } = await supabase.auth.getUser();
   if (error) {
@@ -64,7 +62,7 @@ export const createSignedDiagnosisUrls = async (paths: string[], expiresInSecond
     throw new Error(error.message);
   }
 
-  return (data ?? []).map((item) => item.signedUrl);
+  return (data ?? []).map((item: { signedUrl: string }) => item.signedUrl);
 };
 
 export const removeDiagnosisImages = async (paths: string[]) => {

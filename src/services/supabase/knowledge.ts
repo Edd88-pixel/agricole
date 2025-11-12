@@ -15,8 +15,8 @@ const ensurePostgrest = (error: PostgrestError | null) => {
 };
 
 export const fetchKnowledgeArticles = async (): Promise<KnowledgeArticle[]> => {
-  const { data, error } = await supabase.from<KnowledgeRow>(TABLE).select('*');
+  const { data, error } = await supabase.from(TABLE).select('*');
   ensurePostgrest(error);
 
-  return data ?? [];
+  return (data ?? []) as KnowledgeRow[];
 };

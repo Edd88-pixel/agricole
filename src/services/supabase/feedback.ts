@@ -27,6 +27,6 @@ export const submitDiagnosisFeedback = async (payload: {
   comment?: string;
 }) => {
   const mapped = mapPayload(payload);
-  const { error } = await supabase.from<FeedbackInsert>(TABLE).insert(mapped);
+  const { error } = await supabase.from(TABLE).insert(mapped as FeedbackInsert);
   ensurePostgrest(error);
 };

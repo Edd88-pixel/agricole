@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -144,11 +144,13 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
             </button>
           </div>
           <input
+            id={avatarInputId}
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleFileChange}
             className="hidden"
+            aria-label={t('settings.changeAvatar') ?? 'Change avatar'}
           />
           <Button
             variant="ghost"
@@ -157,7 +159,8 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
               setAvatarUrl(undefined);
               setAvatarPath(undefined);
               setAvatarCleared(true);
-              setRemovedAvatarPath(profile?.avatarPath ?? avatarPath ?? null);
+              const candidatePath = profile?.avatarPath ?? avatarPath;
+              setRemovedAvatarPath(candidatePath ?? null);
             }}
           >
             {t('settings.removeAvatar')}
@@ -165,20 +168,24 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
         </div>
         <div className="flex-1 space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2">
+            <label className="space-y-2" htmlFor={firstNameId}>
               <span className="text-sm font-medium text-brand-text">{t('settings.firstName')}</span>
               <input
+                id={firstNameId}
                 className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-3 text-sm shadow-inner"
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
+                placeholder={t('settings.firstNamePlaceholder', 'Entrez votre prénom')}
               />
             </label>
-            <label className="space-y-2">
+            <label className="space-y-2" htmlFor={lastNameId}>
               <span className="text-sm font-medium text-brand-text">{t('settings.lastName')}</span>
               <input
+                id={lastNameId}
                 className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-3 text-sm shadow-inner"
                 value={lastName}
                 onChange={(event) => setLastName(event.target.value)}
+                placeholder={t('settings.lastNamePlaceholder', 'Entrez votre nom')}
               />
             </label>
           </div>
@@ -202,3 +209,6 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
 };
 
 export default ProfileSettingsPanel;
+  const firstNameId = useId();
+  const lastNameId = useId();
+  const avatarInputId = useId();

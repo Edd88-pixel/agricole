@@ -30,8 +30,8 @@ const AuthHero = ({ t }: AuthHeroProps) => (
               {t('dashboard.quickScan')}
             </div>
             <p className="text-brand-muted">{t('dashboard.quickScanDescription')}</p>
-            <Button asChild size="lg" className="w-fit">
-              <Link to="/diagnosis/quick">{t('dashboard.quickScan')}</Link>
+            <Button asChild size="lg" className="w-fit" to="/diagnosis/quick">
+              {t('dashboard.quickScan')}
             </Button>
           </div>
         </Card>
@@ -42,8 +42,8 @@ const AuthHero = ({ t }: AuthHeroProps) => (
               {t('dashboard.guidedScan')}
             </div>
             <p className="text-brand-muted">{t('dashboard.guidedScanDescription')}</p>
-            <Button variant="secondary" asChild size="lg" className="w-fit">
-              <Link to="/diagnosis/guided">{t('dashboard.guidedScan')}</Link>
+            <Button variant="secondary" asChild size="lg" className="w-fit" to="/diagnosis/guided">
+              {t('dashboard.guidedScan')}
             </Button>
           </div>
         </Card>

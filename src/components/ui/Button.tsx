@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
+import type { LinkProps } from 'react-router-dom';
 import { clsx } from 'clsx';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
@@ -19,10 +20,10 @@ type ButtonProps = BaseProps &
     asChild?: false;
   };
 
-type AnchorProps = BaseProps & {
-  asChild: true;
-  to: string;
-};
+type AnchorProps = BaseProps &
+  Omit<LinkProps, keyof BaseProps> & {
+    asChild: true;
+  };
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
@@ -48,9 +49,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps | AnchorProps>(
     );
 
     if (asChild) {
-      const anchorProps = rest as AnchorProps;
+      const { to, ...linkProps } = rest as AnchorProps;
       return (
-        <Link className={classes} {...anchorProps}>
+        <Link className={classes} to={to} {...linkProps}>
           {icon}
           {children}
         </Link>

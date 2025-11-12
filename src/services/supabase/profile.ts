@@ -14,9 +14,6 @@ type ProfileRow = {
   id: string;
   email: string | null;
   display_name: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_path: string | null;
   locale: string | null;
   objectives: string | null;
   location: string | null;
@@ -25,27 +22,17 @@ type ProfileRow = {
   created_at: string;
 };
 
-const mapRowToProfile = (row: ProfileRow): UserProfile => {
-  const fallbackName = [row.first_name, row.last_name]
-    .filter((value) => value && value.trim().length > 0)
-    .join(' ')
-    .trim();
-
-  return {
-    id: row.id,
-    email: row.email ?? undefined,
-    displayName: row.display_name ?? (fallbackName.length > 0 ? fallbackName : ''),
-    firstName: row.first_name ?? undefined,
-    lastName: row.last_name ?? undefined,
-    avatarPath: row.avatar_path ?? undefined,
-    locale: (row.locale as SupportedLocale) ?? 'fr',
-    objectives: row.objectives ?? undefined,
-    location: row.location ?? undefined,
-    crops: row.crops ?? [],
-    onboardingCompleted: Boolean(row.onboarding_completed),
-    createdAt: row.created_at
-  };
-};
+const mapRowToProfile = (row: ProfileRow): UserProfile => ({
+  id: row.id,
+  email: row.email ?? undefined,
+  displayName: row.display_name ?? '',
+  locale: (row.locale as SupportedLocale) ?? 'fr',
+  objectives: row.objectives ?? undefined,
+  location: row.location ?? undefined,
+  crops: row.crops ?? [],
+  onboardingCompleted: Boolean(row.onboarding_completed),
+  createdAt: row.created_at
+});
 
 const ensurePostgrest = (error: PostgrestError | null) => {
   if (error) {
@@ -57,9 +44,6 @@ const normaliseInsert = (payload: ProfileInsert) => ({
   id: payload.id,
   email: payload.email ?? null,
   display_name: payload.displayName,
-  first_name: payload.firstName?.trim() || null,
-  last_name: payload.lastName?.trim() || null,
-  avatar_path: payload.avatarPath ?? null,
   locale: payload.locale,
   objectives: payload.objectives ?? null,
   location: payload.location ?? null,
@@ -72,9 +56,6 @@ const normaliseUpdate = (payload: ProfileUpdate) => {
 
   if (payload.email !== undefined) entries.push(['email', payload.email ?? null]);
   if (payload.displayName !== undefined) entries.push(['display_name', payload.displayName]);
-  if (payload.firstName !== undefined) entries.push(['first_name', payload.firstName?.trim() || null]);
-  if (payload.lastName !== undefined) entries.push(['last_name', payload.lastName?.trim() || null]);
-  if (payload.avatarPath !== undefined) entries.push(['avatar_path', payload.avatarPath ?? null]);
   if (payload.locale !== undefined) entries.push(['locale', payload.locale]);
   if (payload.objectives !== undefined) entries.push(['objectives', payload.objectives ?? null]);
   if (payload.location !== undefined) entries.push(['location', payload.location ?? null]);
@@ -87,10 +68,10 @@ const normaliseUpdate = (payload: ProfileUpdate) => {
 
 export const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
   const { data, error } = await supabase
-    .from<ProfileRow>(TABLE)
+    .from(TABLE)
     .select('*')
     .eq('id', userId)
-    .maybeSingle();
+    .maybeSingle<ProfileRow>();
 
   ensurePostgrest(error);
 
@@ -105,10 +86,10 @@ export const createProfile = async (payload: ProfileInsert): Promise<UserProfile
   const insertPayload = normaliseInsert(payload);
 
   const { data, error } = await supabase
-    .from<ProfileRow>(TABLE)
+    .from(TABLE)
     .insert(insertPayload)
     .select()
-    .single();
+    .single<ProfileRow>();
 
   ensurePostgrest(error);
 
@@ -131,11 +112,11 @@ export const updateProfile = async (userId: string, payload: ProfileUpdate): Pro
   }
 
   const { data, error } = await supabase
-    .from<ProfileRow>(TABLE)
+    .from(TABLE)
     .update(updateData)
     .eq('id', userId)
     .select()
-    .single();
+    .single<ProfileRow>();
 
   ensurePostgrest(error);
 

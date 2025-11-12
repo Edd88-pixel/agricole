@@ -1,4 +1,4 @@
-export type DiagnosisStatus = 'healthy' | 'stressed' | 'sick' | 'pending';
+type DiagnosisStatus = 'healthy' | 'stressed' | 'sick' | 'pending';
 
 export type DiagnosisResult = {
   id: string;
@@ -23,14 +23,3 @@ export type DiagnosisClass = {
   description: string;
 };
 
-export type UploadJob = {
-  id: string;
-  files: string[];
-  status: 'queued' | 'processing' | 'completed' | 'failed';
-};
-
-export type Reminder = {
-  id: string;
-  scheduledFor: string;
-  notes: string;
-};

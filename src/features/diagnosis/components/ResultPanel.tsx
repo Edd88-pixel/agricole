@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/ui/Card';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import type { DiagnosisResult } from '../types/diagnosis';
 import { useDiagnosisReport } from '../hooks/useDiagnosisReport';
 import { submitDiagnosisFeedback } from '@/services/supabase/feedback';
+import { createSignedDiagnosisUrls } from '@/services/supabase/storage';
 
 const ResultPanel = ({ result }: { result: DiagnosisResult }) => {
   const { t, i18n } = useTranslation();
@@ -39,6 +40,43 @@ const ResultPanel = ({ result }: { result: DiagnosisResult }) => {
     }
   };
 
+  const [displayImages, setDisplayImages] = useState<string[]>(result.images);
+
+  useEffect(() => {
+    const needsSigning = (urls: string[]) => urls.some((u) => !/^https?:\/\//i.test(u));
+    if (result.images.length === 0 && result.imagePaths && result.imagePaths.length > 0) {
+      createSignedDiagnosisUrls(result.imagePaths).then(setDisplayImages).catch(() => setDisplayImages([]));
+      return;
+    }
+    if (needsSigning(result.images) && result.imagePaths && result.imagePaths.length > 0) {
+      createSignedDiagnosisUrls(result.imagePaths).then(setDisplayImages).catch(() => setDisplayImages(result.images));
+    } else {
+      setDisplayImages(result.images);
+    }
+  }, [result.images, result.imagePaths]);
+
+  // Make sure actions are strings to avoid React rendering errors
+  const displayActions = useMemo(() => {
+    const toText = (action: unknown): string => {
+      if (typeof action === 'string') return action;
+      if (action && typeof action === 'object') {
+        const obj = action as Record<string, unknown>;
+        const label = typeof obj.label === 'string' ? obj.label : undefined;
+        const description = typeof obj.description === 'string' ? obj.description : undefined;
+        if (label && description) return `${label} — ${description}`;
+        if (label) return label;
+        if (description) return description;
+        try {
+          return JSON.stringify(obj);
+        } catch {
+          return String(action);
+        }
+      }
+      return String(action ?? '');
+    };
+    return (result.actions ?? []).map(toText).filter((s) => s && s.trim().length > 0);
+  }, [result.actions]);
+
   return (
     <Card className="space-y-6 bg-brand-surface">
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -63,7 +101,7 @@ const ResultPanel = ({ result }: { result: DiagnosisResult }) => {
             {result.alternatives.map((item) => (
               <li key={item.label} className="rounded-xl border border-subtle bg-brand-background p-4">
                 <p className="font-semibold text-brand-text">{item.label}</p>
-                <p className="text-sm text-brand-muted">{t('diagnosis.scores')}: {(item.confidence * 100).toFixed(0)}%</p>
+                <p className="text-sm text-brand-muted">{t('diagnosis.scores')}: {Number.isFinite(item.confidence) ? (item.confidence * 100).toFixed(0) : '0'}%</p>
               </li>
             ))}
           </ul>
@@ -93,13 +131,18 @@ const ResultPanel = ({ result }: { result: DiagnosisResult }) => {
           <p className="mt-1 text-sm text-brand-text whitespace-pre-line">{result.context}</p>
         </div>
       </section>
-      {result.images.length > 0 && (
+      {displayImages.length > 0 && (
         <section>
           <h3 className="text-sm font-semibold text-brand-text">{t('diagnosis.mediaTitle', 'Images analysées')}</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {result.images.map((image) => (
+            {displayImages.map((image) => (
               <figure key={image} className="overflow-hidden rounded-2xl border border-brand-secondary/10 bg-brand-background">
-                <img src={image} alt={t('diagnosis.mediaAlt', { defaultValue: 'Photo analysée' }) ?? 'Photo analysée'} className="h-48 w-full object-cover" loading="lazy" />
+                <img
+                  src={image}
+                  alt={t('diagnosis.mediaAlt', { defaultValue: 'Photo analysée' }) ?? 'Photo analysée'}
+                  className="h-48 w-full object-cover"
+                  loading="lazy"
+                />
               </figure>
             ))}
           </div>
@@ -107,7 +150,7 @@ const ResultPanel = ({ result }: { result: DiagnosisResult }) => {
       )}
       <section>
         <h3 className="text-sm font-semibold text-brand-text">{t('diagnosis.checklistTitle')}</h3>
-        <Checklist items={result.actions.map((action, index) => ({ id: `${result.id}-${index}`, label: action }))} />
+        <Checklist items={displayActions.map((text, index) => ({ id: `${result.id}-${index}`, label: text }))} />
       </section>
       <section className="rounded-2xl border border-subtle bg-brand-background/60 p-4">
         <p className="text-sm font-semibold text-brand-text">{t('diagnosis.feedbackQuestion')}</p>

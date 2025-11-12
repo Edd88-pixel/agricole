@@ -4,7 +4,7 @@ import en from './messages/en';
 import fr from './messages/fr';
 
 export const supportedLanguages = ['fr', 'en'] as const;
-export type SupportedLanguage = (typeof supportedLanguages)[number];
+type SupportedLanguage = (typeof supportedLanguages)[number];
 
 const resources = {
   en: { translation: en },

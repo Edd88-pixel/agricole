@@ -44,7 +44,22 @@ const HistoryReport = () => {
       </header>
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-brand-text">Actions</h2>
-        <Checklist items={entry.actions.map((action, index) => ({ id: `${entry.id}-${index}`, label: action }))} />
+        <Checklist
+          items={(entry.actions ?? []).map((action, index) => {
+            const asString =
+              typeof action === 'string'
+                ? action
+                : action && typeof action === 'object'
+                ? [
+                    typeof (action as any).label === 'string' ? (action as any).label : undefined,
+                    typeof (action as any).description === 'string' ? (action as any).description : undefined
+                  ]
+                    .filter(Boolean)
+                    .join(' — ')
+                : String(action ?? '');
+            return { id: `${entry.id}-${index}`, label: asString };
+          })}
+        />
       </section>
       {entry.images.length > 0 && (
         <section>

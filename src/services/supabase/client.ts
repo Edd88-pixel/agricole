@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const readEnv = (keys: string[]): string | undefined => {
   const env = import.meta.env as Record<string, string | undefined>;
@@ -19,7 +19,7 @@ const readEnv = (keys: string[]): string | undefined => {
 const supabaseUrl = readEnv(['VITE_SUPABASE_URL', 'REACT_APP_SUPABASE_URL']);
 const supabaseAnonKey = readEnv(['VITE_SUPABASE_ANON_KEY', 'REACT_APP_SUPABASE_ANON_KEY']);
 
-const createDisabledClient = () => {
+const createDisabledClient = (): SupabaseClient => {
   const notConfigured = (method: string) =>
     Promise.resolve({ data: null, error: { message: `Supabase not configured: ${method}` } });
 
@@ -56,14 +56,12 @@ const createDisabledClient = () => {
     functions: {
       invoke: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured: functions.invoke' } })
     }
-  } as any;
+  } as unknown as SupabaseClient;
 };
 
-export const supabase =
+export const supabase: SupabaseClient =
   supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey, {
         auth: { persistSession: true, detectSessionInUrl: true }
       })
     : createDisabledClient();
-
-export type SupabaseClient = typeof supabase;

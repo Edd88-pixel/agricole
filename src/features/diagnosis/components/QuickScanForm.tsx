@@ -13,18 +13,13 @@ import type { DiagnosisResult } from '../types/diagnosis';
 const schema = z.object({
   crop: z.string().min(2),
   stage: z.string().min(2),
-  symptoms: z.array(z.string()).min(1),
+  symptomsText: z.string().min(2),
   context: z.string().min(3)
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const symptomKeys = [
-  'domain.symptoms.leafSpots',
-  'domain.symptoms.chlorosis',
-  'domain.symptoms.wilting',
-  'domain.symptoms.insectBite'
-] as const;
+// Les symptômes sont désormais saisis librement dans un champ texte
 
 type QuickScanProps = {
   onResult?: (result: DiagnosisResult) => void;
@@ -39,14 +34,24 @@ const QuickScanForm = ({ onResult }: QuickScanProps) => {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { crop: '', stage: '', symptoms: [], context: '' }
+    defaultValues: { crop: '', stage: '', symptomsText: '', context: '' }
   });
 
   const handleSubmit = form.handleSubmit(async (values) => {
     setSubmitting(true);
     setError(null);
     try {
-      const inference = await runInference({ ...values, files });
+      const symptoms = values.symptomsText
+        .split(/[,;\n]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const inference = await runInference({
+        crop: values.crop,
+        stage: values.stage,
+        symptoms,
+        context: values.context,
+        files
+      });
       setResult(inference);
       onResult?.(inference);
     } catch (submissionError) {
@@ -88,28 +93,18 @@ const QuickScanForm = ({ onResult }: QuickScanProps) => {
               <span className="text-sm text-brand-danger">{form.formState.errors.stage.message}</span>
             )}
           </label>
-          <fieldset className="space-y-3 md:col-span-2">
-            <legend className="text-sm font-medium text-brand-text">{t('diagnosis.symptomsLabel')}</legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {symptomKeys.map((key) => (
-                <label
-                  key={key}
-                  className="flex items-center gap-3 rounded-3xl border border-brand-secondary/20 bg-white/70 p-4 shadow-sm"
-                >
-                  <input
-                    type="checkbox"
-                    value={t(key)}
-                    className="h-5 w-5 rounded border-brand-secondary/40 text-brand-primary focus:ring-brand-primary"
-                    {...form.register('symptoms')}
-                  />
-                  <span className="text-sm">{t(key)}</span>
-                </label>
-              ))}
-            </div>
-            {form.formState.errors.symptoms && (
-              <span className="text-sm text-brand-danger">{form.formState.errors.symptoms.message}</span>
+          <label className="space-y-3 md:col-span-2">
+            <span className="text-sm font-medium text-brand-text">{t('diagnosis.symptomsLabel')}</span>
+            <textarea
+              className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/70 p-4 text-sm shadow-inner"
+              rows={2}
+              {...form.register('symptomsText')}
+              placeholder={t('diagnosis.symptomsPlaceholder', 'Saisissez des symptômes, séparés par des virgules…') ?? ''}
+            />
+            {form.formState.errors.symptomsText && (
+              <span className="text-sm text-brand-danger">{form.formState.errors.symptomsText.message}</span>
             )}
-          </fieldset>
+          </label>
           <label className="md:col-span-2 space-y-3">
             <span className="text-sm font-medium text-brand-text">{t('diagnosis.contextLabel')}</span>
             <textarea

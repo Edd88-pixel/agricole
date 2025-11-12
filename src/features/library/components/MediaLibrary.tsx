@@ -24,6 +24,19 @@ const MediaLibrary = ({ entries, isLoading = false }: Props) => {
   const [selectedDisease, setSelectedDisease] = useState<string>('all');
 
   const groups = useMemo(() => {
+    const toText = (action: unknown): string => {
+      if (typeof action === 'string') return action;
+      if (action && typeof action === 'object') {
+        const a = action as Record<string, unknown>;
+        const label = typeof a.label === 'string' ? a.label : undefined;
+        const description = typeof a.description === 'string' ? a.description : undefined;
+        if (label && description) return `${label} — ${description}`;
+        if (label) return label;
+        if (description) return description;
+        try { return JSON.stringify(a); } catch { return String(action); }
+      }
+      return String(action ?? '');
+    };
     const aggregated = entries.reduce<GalleryGroup[]>((accumulator, entry) => {
       if (!entry.images || entry.images.length === 0) return accumulator;
       accumulator.push({
@@ -31,7 +44,7 @@ const MediaLibrary = ({ entries, isLoading = false }: Props) => {
         disease: entry.primary.label,
         date: entry.createdAt,
         images: entry.images,
-        actions: entry.actions,
+        actions: (entry.actions ?? []).map(toText),
         status: entry.status
       });
       return accumulator;

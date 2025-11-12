@@ -12,6 +12,7 @@ type KnowledgeResponse = {
   createdAt: string;
   message: string;
   images: string[];
+  links?: { title?: string; url: string }[];
 };
 
 type KnowledgeRequest = {
@@ -32,9 +33,15 @@ export const sendKnowledgeMessage = async ({ prompt, history, files }: Knowledge
 
   const response = await invokeEdgeFunction<KnowledgeResponse>(appConfig.supabase.functions.knowledgeChat, {
     body: {
+      // principal schema (notre fonction)
       prompt,
       history,
-      imagePaths: uploadedPaths
+      imagePaths: uploadedPaths,
+      // schémas alternatifs pour compatibilité avec d'autres fonctions
+      query: prompt,
+      message: prompt,
+      messages: history,
+      images: uploadedPaths
     }
   });
 

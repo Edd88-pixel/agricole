@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 
-export type Status = 'healthy' | 'stressed' | 'sick' | 'pending';
+type Status = 'healthy' | 'stressed' | 'sick' | 'pending';
 
 type Props = {
   status: Status;

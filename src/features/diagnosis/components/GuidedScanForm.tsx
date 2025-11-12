@@ -14,23 +14,17 @@ import type { DiagnosisResult } from '../types/diagnosis';
 const schema = z.object({
   crop: z.string().min(2),
   stage: z.string().min(2),
-  symptoms: z.array(z.string()).min(1),
+  symptomsText: z.string().min(2),
   context: z.string().min(3)
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const steps: (keyof FormValues)[] = ['crop', 'symptoms', 'context'];
+const steps: (keyof FormValues)[] = ['crop', 'symptomsText', 'context'];
 
 const optionKeys = {
   crop: ['domain.crops.maize', 'domain.crops.wheat', 'domain.crops.cotton', 'domain.crops.rice'] as const,
-  stage: ['domain.stages.sowing', 'domain.stages.vegetative', 'domain.stages.flowering', 'domain.stages.harvest'] as const,
-  symptoms: [
-    'domain.symptoms.leafSpots',
-    'domain.symptoms.necrosis',
-    'domain.symptoms.chlorosis',
-    'domain.symptoms.insectsVisible'
-  ] as const
+  stage: ['domain.stages.sowing', 'domain.stages.vegetative', 'domain.stages.flowering', 'domain.stages.harvest'] as const
 };
 
 type GuidedProps = {
@@ -47,7 +41,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { crop: '', stage: '', symptoms: [], context: '' }
+    defaultValues: { crop: '', stage: '', symptomsText: '', context: '' }
   });
 
   const labels = [t('diagnosis.cropLabel'), t('diagnosis.symptomsLabel'), t('diagnosis.contextLabel')];
@@ -65,7 +59,17 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
           if (files.length === 0) {
             throw new Error('missing-files');
           }
-          const inference = await runInference({ ...values, files });
+          const symptoms = values.symptomsText
+            .split(/[,;\n]+/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const inference = await runInference({
+            crop: values.crop,
+            stage: values.stage,
+            symptoms,
+            context: values.context,
+            files
+          });
           setResult(inference);
           onResult?.(inference);
         } catch (submissionError) {
@@ -139,28 +143,18 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
             </div>
           )}
           {step === 1 && (
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-medium text-brand-text">{t('diagnosis.symptomsLabel')}</legend>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {optionKeys.symptoms.map((key) => (
-                  <label
-                    key={key}
-                    className="flex items-center gap-3 rounded-3xl border border-brand-secondary/20 bg-white/80 p-4 shadow-sm transition hover:border-brand-secondary/40 hover:shadow-[0_12px_24px_rgba(16,124,140,0.12)]"
-                  >
-                    <input
-                      type="checkbox"
-                      value={t(key)}
-                      className="h-5 w-5 rounded border-brand-secondary/40 text-brand-primary focus:ring-brand-primary"
-                      {...form.register('symptoms')}
-                    />
-                    <span className="text-sm">{t(key)}</span>
-                  </label>
-                ))}
-              </div>
-              {form.formState.errors.symptoms && (
-                <span className="text-sm text-brand-danger">{form.formState.errors.symptoms.message}</span>
+            <label className="block space-y-3">
+              <span className="text-sm font-medium text-brand-text">{t('diagnosis.symptomsLabel')}</span>
+              <textarea
+                className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60"
+                rows={3}
+                {...form.register('symptomsText')}
+                placeholder={t('diagnosis.symptomsPlaceholder', 'Saisissez des symptômes, séparés par des virgules…') ?? ''}
+              />
+              {form.formState.errors.symptomsText && (
+                <span className="text-sm text-brand-danger">{form.formState.errors.symptomsText.message}</span>
               )}
-            </fieldset>
+            </label>
           )}
           {step === 2 && (
             <label className="block space-y-3">

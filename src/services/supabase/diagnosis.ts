@@ -85,18 +85,19 @@ export const fetchDiagnoses = async (): Promise<HistoryEntry[]> => {
   const userId = await getAuthenticatedUserId();
 
   const { data, error } = await supabase
-    .from<DiagnosisRow>(TABLE)
+    .from(TABLE)
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   ensurePostgrest(error);
 
-  if (!data) {
+  const rows = (data ?? []) as DiagnosisRow[];
+  if (rows.length === 0) {
     return [];
   }
 
-  const mapped = await Promise.all((data ?? []).map((row) => mapRowToHistoryEntry(row)));
+  const mapped = await Promise.all(rows.map((row) => mapRowToHistoryEntry(row)));
   return mapped;
 };
 

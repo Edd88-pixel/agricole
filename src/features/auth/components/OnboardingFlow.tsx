@@ -6,21 +6,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Stepper from '@/components/ui/Stepper';
+import type { OnboardingPayload } from '@/features/profile/types/profile';
 
 const schema = z.object({
   objectives: z.string().min(3),
   location: z.string().min(2),
-  crops: z.array(z.string()).min(1)
+  cropsText: z.string().min(2)
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const cropKeys = ['domain.crops.wheat', 'domain.crops.maize', 'domain.crops.rice', 'domain.crops.tomato', 'domain.crops.potato'] as const;
-
-const stepsKeys: (keyof FormValues)[] = ['objectives', 'location', 'crops'];
+const stepsKeys: (keyof FormValues)[] = ['objectives', 'location', 'cropsText'];
 
 type Props = {
-  onComplete: (values: FormValues) => Promise<void>;
+  onComplete: (values: OnboardingPayload) => Promise<void>;
 };
 
 const OnboardingFlow = ({ onComplete }: Props) => {
@@ -29,7 +28,7 @@ const OnboardingFlow = ({ onComplete }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { objectives: '', location: '', crops: [] }
+    defaultValues: { objectives: '', location: '', cropsText: '' }
   });
 
   const stepperLabels = [
@@ -45,7 +44,12 @@ const OnboardingFlow = ({ onComplete }: Props) => {
       if (step === stepsKeys.length - 1) {
         try {
           setIsSubmitting(true);
-          await onComplete(form.getValues());
+          const values = form.getValues();
+          const crops = values.cropsText
+            .split(/[,;\n]+/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+          await onComplete({ objectives: values.objectives, location: values.location, crops });
         } finally {
           setIsSubmitting(false);
         }
@@ -93,25 +97,17 @@ const OnboardingFlow = ({ onComplete }: Props) => {
           </label>
         )}
         {step === 2 && (
-          <fieldset className="space-y-3">
-            <legend className="text-sm font-medium text-brand-text">{t('auth.cropsStep')}</legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {cropKeys.map((key) => (
-                <label key={key} className="flex items-center gap-3 rounded-2xl border border-brand-secondary/20 bg-white/70 p-4 shadow-sm">
-                  <input
-                    type="checkbox"
-                    value={t(key)}
-                    className="h-5 w-5 rounded border-brand-secondary/40 text-brand-primary focus:ring-brand-primary"
-                    {...form.register('crops')}
-                  />
-                  <span className="text-sm">{t(key)}</span>
-                </label>
-              ))}
-            </div>
-            {form.formState.errors.crops && (
-              <p className="text-sm text-brand-danger">{form.formState.errors.crops.message}</p>
+          <label className="block space-y-3">
+            <span className="text-sm font-medium text-brand-text">{t('auth.cropsStep')}</span>
+            <textarea
+              className="focus-ring min-h-[120px] w-full rounded-3xl border border-brand-secondary/30 bg-white/70 p-4 text-sm shadow-inner"
+              {...form.register('cropsText')}
+              placeholder={t('auth.cropsPlaceholder', 'Listez vos cultures, séparées par des virgules') ?? ''}
+            />
+            {form.formState.errors.cropsText && (
+              <p className="text-sm text-brand-danger">{form.formState.errors.cropsText.message}</p>
             )}
-          </fieldset>
+          </label>
         )}
       </form>
       <footer className="flex items-center justify-between">
@@ -126,7 +122,12 @@ const OnboardingFlow = ({ onComplete }: Props) => {
             onClick={async () => {
               try {
                 setIsSubmitting(true);
-                await onComplete(form.getValues());
+                const values = form.getValues();
+                const crops = values.cropsText
+                  .split(/[,;\n]+/)
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                await onComplete({ objectives: values.objectives, location: values.location, crops });
               } finally {
                 setIsSubmitting(false);
               }

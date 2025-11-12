@@ -44,6 +44,8 @@ const AuthGateway = () => {
   const { theme, setTheme } = useTheme();
   const [mode, setMode] = useState<AuthMode>('signin');
   const [error, setError] = useState<string | null>(null);
+  const [signInLoading, setSignInLoading] = useState(false);
+  const [signUpStatus, setSignUpStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const signInForm = useForm<SignInValues>({
@@ -73,14 +75,17 @@ const AuthGateway = () => {
 
   const onSubmitSignIn = signInForm.handleSubmit(async (values) => {
     setError(null);
+    setSignInLoading(true);
     const { error: authError } = await signIn(values.email, values.password);
     if (authError) {
       setError(authError.message);
     }
+    setSignInLoading(false);
   });
 
   const onSubmitSignUp = signUpForm.handleSubmit(async (values) => {
     setError(null);
+    setSignUpStatus('submitting');
     const avatarFiles = values.avatar as FileList | undefined;
     const avatarFile = avatarFiles && avatarFiles.length > 0 ? avatarFiles[0] : null;
 
@@ -93,12 +98,14 @@ const AuthGateway = () => {
 
     if (authError) {
       setError(authError.message);
+      setSignUpStatus('idle');
       return;
     }
 
     const signInResult = await signIn(values.email, values.password);
     if (signInResult.error) {
       setError(signInResult.error.message);
+      setSignUpStatus('idle');
       return;
     }
 
@@ -134,6 +141,7 @@ const AuthGateway = () => {
         }
       } catch (profileError) {
         console.error('Unable to initialise profile after sign-up', profileError);
+        setSignUpStatus('idle');
       }
     }
 
@@ -151,10 +159,15 @@ const AuthGateway = () => {
       URL.revokeObjectURL(avatarPreview);
       setAvatarPreview(null);
     }
+    setSignUpStatus('success');
     setMode('signin');
   });
 
-  const activeForm = mode === 'signin' ? signInForm : signUpForm;
+  const emailRegister = mode === 'signin' ? signInForm.register('email') : signUpForm.register('email');
+  const passwordRegister = mode === 'signin' ? signInForm.register('password') : signUpForm.register('password');
+  const emailError = mode === 'signin' ? signInForm.formState.errors.email : signUpForm.formState.errors.email;
+  const passwordError =
+    mode === 'signin' ? signInForm.formState.errors.password : signUpForm.formState.errors.password;
 
   const changeLanguage = (lng: string) => {
     if (supportedLanguages.includes(lng as (typeof supportedLanguages)[number])) {
@@ -215,26 +228,28 @@ const AuthGateway = () => {
               )}
               <label className="block space-y-2">
                 <span className="text-sm font-medium text-brand-text">{t('auth.email')}</span>
-                <input
-                  type="email"
-                  className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-4 text-sm shadow-inner"
-                  {...activeForm.register('email')}
-                  autoComplete="email"
-                />
-                {activeForm.formState.errors.email && (
-                  <span className="text-sm text-brand-danger">{activeForm.formState.errors.email.message}</span>
+                  <input
+                    type="email"
+                    className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-4 text-sm shadow-inner"
+                  disabled={signInLoading || signUpStatus === 'submitting'}
+                  {...emailRegister}
+                    autoComplete="email"
+                  />
+                {emailError && (
+                  <span className="text-sm text-brand-danger">{emailError.message}</span>
                 )}
               </label>
               <label className="block space-y-2">
                 <span className="text-sm font-medium text-brand-text">{t('auth.password')}</span>
-                <input
-                  type="password"
-                  className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-4 text-sm shadow-inner"
-                  {...activeForm.register('password')}
-                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                />
-                {activeForm.formState.errors.password && (
-                  <span className="text-sm text-brand-danger">{activeForm.formState.errors.password.message}</span>
+                  <input
+                    type="password"
+                    className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-4 text-sm shadow-inner"
+                  disabled={signInLoading || signUpStatus === 'submitting'}
+                  {...passwordRegister}
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  />
+                {passwordError && (
+                  <span className="text-sm text-brand-danger">{passwordError.message}</span>
                 )}
               </label>
               {mode === 'signup' && (
@@ -269,7 +284,7 @@ const AuthGateway = () => {
                               }
                             }}
                           />
-                          <Button type="button" variant="secondary" onClick={() => avatarInputRef.current?.click()}>
+                          <Button type="button" variant="secondary" onClick={() => avatarInputRef.current?.click()} disabled={signUpStatus === 'submitting'}>
                             {t('auth.selectAvatar')}
                           </Button>
                         </div>
@@ -323,7 +338,12 @@ const AuthGateway = () => {
                 </>
               )}
               {error && <p className="rounded-xl bg-brand-danger/10 p-3 text-sm text-brand-danger">{error}</p>}
-              <Button type="submit" size="lg" className="w-full">
+              {signUpStatus === 'success' && (
+                <p className="rounded-xl bg-brand-secondary/10 p-3 text-sm text-brand-secondary">
+                  {t('settings.profileSaved', 'Profil mis à jour')}
+                </p>
+              )}
+              <Button type="submit" size="lg" className="w-full" isLoading={mode === 'signin' ? signInLoading : signUpStatus === 'submitting'}>
                 {mode === 'signin' ? t('auth.signInAction') : t('auth.signUpAction')}
               </Button>
             </form>

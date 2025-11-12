@@ -25,6 +25,7 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiLinks, setAiLinks] = useState<{ title?: string; url: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -49,14 +50,19 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
     if (!trimmed && pendingFiles.length === 0) {
       return;
     }
-    const history = [...messages, { role: 'user', content: trimmed }];
+    const userMessage: ChatMessage = { role: 'user', content: trimmed };
+    const history: ChatMessage[] = [...messages, userMessage];
     setMessages(history);
     setInput('');
     setIsSending(true);
     setError(null);
     try {
       const response = await sendKnowledgeMessage({ prompt: trimmed, history, files: pendingFiles });
-      setMessages((previous) => [...previous, { role: 'assistant', content: response.message }]);
+      const assistantReply: ChatMessage = { role: 'assistant', content: response.message };
+      setMessages((previous) => [...previous, assistantReply]);
+      const parsed = extractLinks(response.message);
+      const merged = dedupeLinks([...(response.links ?? []), ...parsed]).slice(0, 6);
+      setAiLinks(merged);
     } catch (err) {
       console.error('Knowledge assistant failed', err);
       setError(t('kb.error', 'Le service IA est momentanément indisponible.'));
@@ -68,7 +74,7 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-      <Card className="flex h-[520px] flex-col overflow-hidden">
+      <Card className="flex h-[70vh] flex-col overflow-hidden md:h-[580px]">
         <header className="relative border-b border-subtle/70 pb-4">
           <span className="pointer-events-none absolute -right-6 -top-10 h-24 w-24 rounded-full bg-brand-primary/10 blur-2xl" aria-hidden />
           <h1 className="text-2xl font-semibold text-brand-text">{t('kb.title')}</h1>
@@ -155,7 +161,22 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
       </Card>
       <Card className="space-y-4">
         <h2 className="text-lg font-semibold text-brand-text">{t('kb.recommended', 'Ressources recommandées')}</h2>
-        {isLoading ? (
+        {aiLinks.length > 0 ? (
+          <ul className="space-y-3 text-sm text-brand-text">
+            {aiLinks.map((link) => (
+              <li key={link.url} className="group rounded-2xl border border-subtle/70 bg-brand-background p-3 transition-all duration-300 hover:border-brand-secondary/40">
+                <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3">
+                  <span className="rounded-md bg-brand-secondary/10 px-2 py-1 text-xs font-semibold text-brand-secondary">Lien</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold truncate">{getHostname(link.url, link.title)}</span>
+                    <span className="block text-xs text-brand-muted overflow-hidden text-ellipsis whitespace-nowrap">{getPathname(link.url)}</span>
+                  </span>
+                  <span aria-hidden>↗</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-16 w-full" />
@@ -183,6 +204,53 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
       </Card>
     </div>
   );
+};
+
+// Utilitaires liens: extraction, dédoublonnage et affichage propre
+const sanitizeUrl = (raw: string): string => {
+  let url = raw.trim();
+  // Supprime parenthèses/ponctuation entourant
+  url = url.replace(/^\((.*)\)$/, '$1');
+  url = url.replace(/[)\].,;!?]+$/g, '');
+  return url;
+};
+
+const extractLinks = (text: string): { url: string }[] => {
+  const re = /(https?:\/\/[\w.-]+(?:\/[\w\-.~:%/?#[\]@!$&'()*+,;=]*)?)/gi;
+  const matches = text.match(re) ?? [];
+  return matches.map((u) => ({ url: sanitizeUrl(u) }));
+};
+
+const dedupeLinks = (links: { url: string; title?: string }[]) => {
+  const seen = new Set<string>();
+  const out: { url: string; title?: string }[] = [];
+  for (const l of links) {
+    const u = sanitizeUrl(l.url);
+    if (!seen.has(u)) {
+      seen.add(u);
+      out.push({ url: u, title: l.title });
+    }
+  }
+  return out;
+};
+
+const getHostname = (raw: string, title?: string) => {
+  try {
+    const u = new URL(raw);
+    return title ?? u.hostname.replace(/^www\./, '');
+  } catch {
+    return title ?? raw;
+  }
+};
+
+const getPathname = (raw: string) => {
+  try {
+    const u = new URL(raw);
+    const path = (u.pathname + u.search).replace(/\/+$/, '');
+    return path || '/';
+  } catch {
+    return raw;
+  }
 };
 
 export default KnowledgeBase;
