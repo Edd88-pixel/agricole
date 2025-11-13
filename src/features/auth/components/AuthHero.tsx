@@ -48,14 +48,6 @@ const AuthHero = ({ t }: AuthHeroProps) => (
           </div>
         </Card>
       </div>
-      <ul className="space-y-3 text-sm text-brand-muted" role="list">
-        {features.map(({ icon, key }) => (
-          <li key={key} className="flex items-center gap-2">
-            <span aria-hidden>{icon}</span>
-            {t(key)}
-          </li>
-        ))}
-      </ul>
     </div>
   </Card>
 );

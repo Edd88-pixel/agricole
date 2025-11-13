@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { clsx } from 'clsx';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Stepper from '@/components/ui/Stepper';
 import UploadZone from '@/components/ui/UploadZone';
 import DiagnosisResultPanel from './ResultPanel';
 import { runInference } from '../services/inference';
@@ -29,9 +29,11 @@ const optionKeys = {
 
 type GuidedProps = {
   onResult?: (result: DiagnosisResult) => void;
+
 };
 
 const GuidedScanForm = ({ onResult }: GuidedProps) => {
+  
   const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
@@ -40,9 +42,11 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
+
     resolver: zodResolver(schema),
     defaultValues: { crop: '', stage: '', symptomsText: '', context: '' }
   });
+
 
   const labels = [t('diagnosis.cropLabel'), t('diagnosis.symptomsLabel'), t('diagnosis.contextLabel')];
 
@@ -91,21 +95,99 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
   const goBack = () => setStep((prev) => Math.max(prev - 1, 0));
 
   return (
-    <div className="space-y-8">
-      <Card className="space-y-8 border border-subtle/70 bg-brand-surface/90">
-        <header className="space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="mx-auto w-full max-w-4xl space-y-8 px-3 sm:px-0">
+      <Card className="space-y-8 border border-subtle/70 bg-brand-surface/90 p-4 shadow-card sm:p-8">
+        <header className="space-y-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-3xl font-semibold text-brand-text">{t('dashboard.guidedScan')}</h1>
             <span className="rounded-full border border-brand-secondary/30 bg-brand-background/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-secondary shadow-sm">
               {t('diagnosis.uploadTitle')}
             </span>
           </div>
-          <Stepper steps={labels} currentStep={step} />
+          <div className="rounded-3xl border border-brand-secondary/25 bg-white/85 p-4 shadow-inner">
+            <div className="overflow-x-auto">
+              <div className="min-w-[420px] space-y-5 px-1">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  {labels.map((label, index) => {
+                    const isCurrent = step === index;
+                    const isCompleted = step > index;
+                    return (
+                      <div
+                        key={`step-track-${label}`}
+                        className={clsx(
+                          'flex items-center',
+                          index < labels.length - 1 ? 'flex-1' : 'flex-none'
+                        )}
+                      >
+                        <div
+                          className={clsx(
+                            'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition',
+                            isCompleted || isCurrent
+                              ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
+                              : 'border-brand-muted/40 bg-white text-brand-text'
+                          )}
+                        >
+                          {index + 1}
+                        </div>
+                        {index < labels.length - 1 && (
+                          <div
+                            className={clsx(
+                              'ml-3 h-1 flex-1 rounded-full sm:ml-4',
+                              isCompleted ? 'bg-brand-primary' : 'bg-brand-muted/30'
+                            )}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div
+                  className="grid gap-4 text-center text-xs font-medium sm:text-sm"
+                  style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}
+                >
+                  {labels.map((label, index) => {
+                    const isCurrent = step === index;
+                    const isCompleted = step > index;
+                    return (
+                      <div key={`step-label-${label}`} className="space-y-1">
+                        <p
+                          className={clsx(
+                            'font-semibold',
+                            isCurrent ? 'text-brand-primary' : 'text-brand-text'
+                          )}
+                        >
+                          {label}
+                        </p>
+                        <p
+                          className={clsx(
+                            'text-[11px] uppercase tracking-wide sm:text-xs',
+                            isCompleted
+                              ? 'text-brand-primary'
+                              : isCurrent
+                                ? 'text-brand-primary'
+                                : 'text-brand-muted'
+                          )}
+                        >
+                          {isCompleted
+                            ? t('diagnosis.stepper.completed', 'Terminée')
+                            : isCurrent
+                              ? t('diagnosis.stepper.current', 'En cours')
+                              : t('diagnosis.stepper.upcoming', 'À venir')}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         </header>
-        <UploadZone files={files} onChange={setFiles} />
+        <div className="w-full rounded-3xl border border-dashed border-brand-secondary/40 bg-white/70 p-3">
+          <UploadZone files={files} onChange={setFiles} />
+        </div>
         <form className="space-y-6">
           {step === 0 && (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-3">
                 <span className="text-sm font-medium text-brand-text">{t('diagnosis.cropLabel')}</span>
                 <select
@@ -123,6 +205,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
                   <span className="text-sm text-brand-danger">{form.formState.errors.crop.message}</span>
                 )}
               </label>
+
               <label className="space-y-3">
                 <span className="text-sm font-medium text-brand-text">{t('diagnosis.stageLabel')}</span>
                 <select
@@ -171,15 +254,20 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
             </label>
           )}
         </form>
-        <footer className="flex items-center justify-between">
-          <Button variant="ghost" onClick={goBack} disabled={step === 0} className="motion-safe:hover:-translate-y-0.5">
+        <footer className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button
+            variant="ghost"
+            onClick={goBack}
+            disabled={step === 0}
+            className="w-full motion-safe:hover:-translate-y-0.5 sm:w-auto"
+          >
             {t('common.back')}
           </Button>
           <Button
             onClick={goNext}
             isLoading={isSubmitting}
             disabled={step === steps.length - 1 && files.length === 0}
-            className="motion-safe:hover:-translate-y-0.5"
+            className="w-full motion-safe:hover:-translate-y-0.5 sm:w-auto"
           >
             {step === steps.length - 1 ? t('diagnosis.submit') : t('common.continue')}
           </Button>

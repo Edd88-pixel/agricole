@@ -16,6 +16,7 @@
     "@hookform/resolvers": "^3.3.4",
     "@supabase/supabase-js": "^2.43.4",
     "clsx": "^2.1.1",
+    "daisyui": "^5.5.0",
     "i18next": "^23.11.5",
     "nanoid": "^5.0.7",
     "pdf-lib": "^1.17.1",

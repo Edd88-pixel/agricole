@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -19,6 +19,7 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
   const [avatarPath, setAvatarPath] = useState<string | undefined>(undefined);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [avatarCleared, setAvatarCleared] = useState(false);
@@ -26,6 +27,11 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const inputNamespace = profile?.id ?? 'profile';
+  const firstNameId = `${inputNamespace}-first-name`;
+  const lastNameId = `${inputNamespace}-last-name`;
+  const avatarInputId = `${inputNamespace}-avatar`;
 
   useEffect(() => {
     setFirstName(profile?.firstName ?? '');
@@ -35,7 +41,19 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
     setPendingFile(null);
     setAvatarCleared(false);
     setRemovedAvatarPath(null);
-  }, [profile?.avatarPath, profile?.avatarUrl, profile?.firstName, profile?.lastName]);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(undefined);
+    }
+  }, [previewUrl, profile?.avatarPath, profile?.avatarUrl, profile?.firstName, profile?.lastName]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const openFilePicker = () => {
     fileInputRef.current?.click();
@@ -44,12 +62,19 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setPreviewUrl(undefined);
       setPendingFile(null);
       return;
     }
-    setPendingFile(file);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     const preview = URL.createObjectURL(file);
-    setAvatarUrl(preview);
+    setPreviewUrl(preview);
+    setPendingFile(file);
     setAvatarCleared(false);
   };
 
@@ -76,12 +101,21 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
         newAvatarPath = await uploadProfileAvatar(pendingFile);
         const signed = await createSignedProfileUrl(newAvatarPath);
         setAvatarUrl(signed);
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+        }
+        setPreviewUrl(undefined);
         updates.avatarPath = newAvatarPath;
         setAvatarCleared(false);
         setRemovedAvatarPath(previousAvatarPath ?? null);
       } else if (avatarCleared) {
         newAvatarPath = undefined;
         updates.avatarPath = null;
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+        }
+        setPreviewUrl(undefined);
+        setAvatarUrl(undefined);
       }
 
       await onUpdate(updates);
@@ -101,9 +135,6 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
     } catch (updateError) {
       console.error('Unable to save profile settings', updateError);
       setError(t('settings.profileSaveError'));
-      if (pendingFile && avatarPath && avatarUrl?.startsWith('blob:')) {
-        setAvatarUrl(undefined);
-      }
     } finally {
       setIsSaving(false);
     }
@@ -112,6 +143,8 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
   if (!profile) {
     return <Skeleton className="h-72 w-full" />;
   }
+
+  const displayAvatar = previewUrl ?? avatarUrl;
 
   return (
     <Card className="space-y-6">
@@ -128,8 +161,8 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <span className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-brand-secondary/30 bg-brand-background text-3xl font-semibold text-brand-secondary">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={t('common.profileAvatarAlt') ?? 'Avatar'} className="h-full w-full object-cover" />
+              {displayAvatar ? (
+                <img src={displayAvatar} alt={t('common.profileAvatarAlt') ?? 'Avatar'} className="h-full w-full object-cover" />
               ) : (
                 greetingName.charAt(0).toUpperCase()
               )}
@@ -140,7 +173,7 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
               className="focus-ring absolute -bottom-2 right-0 rounded-full bg-brand-primary p-2 text-white shadow-lg"
               aria-label={t('settings.changeAvatar') ?? 'Change avatar'}
             >
-              ✨
+              ✎
             </button>
           </div>
           <input
@@ -155,7 +188,11 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
           <Button
             variant="ghost"
             onClick={() => {
+              if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+              }
               setPendingFile(null);
+              setPreviewUrl(undefined);
               setAvatarUrl(undefined);
               setAvatarPath(undefined);
               setAvatarCleared(true);
@@ -209,6 +246,3 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
 };
 
 export default ProfileSettingsPanel;
-  const firstNameId = useId();
-  const lastNameId = useId();
-  const avatarInputId = useId();

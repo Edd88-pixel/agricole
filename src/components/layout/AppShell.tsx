@@ -45,7 +45,7 @@ const AppShell = ({ children, userName, userEmail, userAvatar, onSignOut }: AppS
     [i18n]
   );
 
-  const handleMobileOpen = useCallback(() => setMobileOpen(true), []);
+  const handleMobileToggle = useCallback(() => setMobileOpen((prev) => !prev), []);
   const handleMobileClose = useCallback(() => setMobileOpen(false), []);
 
   return (
@@ -58,10 +58,30 @@ const AppShell = ({ children, userName, userEmail, userAvatar, onSignOut }: AppS
             <button
               type="button"
               className="focus-ring rounded-full bg-brand-surface/80 p-2 text-xl shadow-sm lg:hidden"
-              aria-label="Toggle navigation"
-              onClick={handleMobileOpen}
+              aria-label={mobileOpen ? t('common.closeMenu', 'Close menu') : t('common.openMenu', 'Open menu')}
+              onClick={handleMobileToggle}
             >
-              �~�
+              {mobileOpen ? (
+                <svg
+                  aria-hidden
+                  className="h-6 w-6 text-brand-primary"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 512 512"
+                  fill="currentColor"
+                >
+                  <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
+                </svg>
+              ) : (
+                <svg
+                  aria-hidden
+                  className="h-6 w-6 text-brand-primary"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 512 512"
+                  fill="currentColor"
+                >
+                  <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
+                </svg>
+              )}
             </button>
             <Link to="/dashboard" className="relative text-lg font-semibold text-brand-primary">
               <span className="absolute -left-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 rounded-full bg-brand-primary/10 md:block" aria-hidden />

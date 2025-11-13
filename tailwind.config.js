@@ -1,3 +1,5 @@
+import daisyui from 'daisyui';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -25,5 +27,31 @@ export default {
         subtle: 'rgb(var(--brand-border-subtle) / <alpha-value>)'
       }
     }
+  },
+  plugins: [daisyui],
+  daisyui: {
+    logs: false,
+    themes: [
+      {
+        agricole: {
+          primary: '#0B6E4F',
+          'primary-content': '#F6FBF7',
+          secondary: '#107C8C',
+          'secondary-content': '#F2FBFF',
+          accent: '#2AAE66',
+          neutral: '#0B1F14',
+          'neutral-content': '#F1F7F4',
+          'base-100': '#FFFFFF',
+          'base-200': '#F6FBF7',
+          'base-300': '#E1EEE7',
+          'base-content': '#0B1F14',
+          info: '#2AAE66',
+          success: '#2AAE66',
+          warning: '#F29C1F',
+          error: '#E24B4B'
+        }
+      },
+      'dark'
+    ]
   }
 };

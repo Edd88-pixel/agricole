@@ -1,4 +1,4 @@
-import { Fragment, useCallback } from 'react';
+﻿import { Fragment, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Link, NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -70,8 +70,21 @@ const MobileDrawer = ({
                 <Link to="/dashboard" className="text-lg font-semibold text-brand-primary" onClick={handleNavigate}>
                   {t('common.brandName')}
                 </Link>
-                <button type="button" className="focus-ring rounded-md p-2" onClick={handleNavigate}>
-                  �o
+                <button
+                  type="button"
+                  className="focus-ring rounded-full border border-brand-secondary/30 p-2"
+                  onClick={handleNavigate}
+                  aria-label={t('common.closeMenu', 'Close menu')}
+                >
+                  <svg
+                    aria-hidden
+                    className="h-5 w-5 text-brand-primary"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 512 512"
+                    fill="currentColor"
+                  >
+                    <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
+                  </svg>
                 </button>
               </div>
               <nav className="flex flex-col gap-3">
@@ -113,7 +126,7 @@ const MobileDrawer = ({
               </div>
               <div className="border-t border-subtle/40 pt-5">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-muted">
-                  {t('dashboard.preferences', 'PrǸfǸrences')}
+                  {t('dashboard.preferences', 'PrÇ¸fÇ¸rences')}
                 </p>
                 <div className="flex flex-col gap-3">
                   <LanguageSelector value={language} onChange={onLanguageChange} />
