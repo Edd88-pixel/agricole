@@ -86,11 +86,11 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
               key={`${message.role}-${index}`}
               className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm transition-all duration-300 motion-safe:animate-[fade-in-up_0.35s_ease-out] ${
                 message.role === 'assistant'
-                  ? 'self-start bg-brand-background text-brand-text'
+                  ? 'self-start bg-brand-background text-brand-text font-serif text-[15px] leading-7 tracking-[0.01em]'
                   : 'ml-auto self-end bg-brand-primary text-white shadow-[0_12px_28px_rgba(11,110,79,0.25)]'
               }`}
             >
-              {message.content}
+              {message.role === 'assistant' ? formatAssistantMessage(message.content) : message.content}
             </div>
           ))}
           {isSending && (
@@ -145,6 +145,9 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
                 accept="image/*"
                 multiple
                 className="hidden"
+                title={t('kb.addPhoto', 'Ajouter des photos') ?? 'Ajouter des photos'}
+                aria-label={t('kb.addPhoto', 'Ajouter des photos') ?? 'Ajouter des photos'}
+                placeholder={t('kb.addPhoto', 'Ajouter des photos') ?? 'Ajouter des photos'}
                 onChange={(event) => handleFileSelection(event.target.files)}
               />
             </div>
@@ -232,6 +235,36 @@ const dedupeLinks = (links: { url: string; title?: string }[]) => {
     }
   }
   return out;
+};
+
+const stripMarkdownLinks = (text: string) => text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '$1');
+
+const formatAssistantMessage = (raw: string): string => {
+  const withBullets = stripMarkdownLinks(raw).replace(/^\s*[*-]\s+/gm, '- ');
+  const withoutUrls = withBullets.replace(/https?:\/\/\S+/gi, '');
+  const withoutBold = withoutUrls.replace(/\*\*([^*]+)\*\*/g, '$1');
+  const withoutItalics = withoutBold.replace(/\*([^*]+)\*/g, '$1');
+  const unwrappedBrackets = withoutItalics.replace(/\[([^\]]+)\]/g, '$1');
+  const lines = unwrappedBrackets.split('\n');
+  const cleaned: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (cleaned[cleaned.length - 1] !== '') {
+        cleaned.push('');
+      }
+      continue;
+    }
+    const withoutMarker = trimmed.replace(/^-+\s*/, '').trim();
+    if (!withoutMarker) {
+      continue;
+    }
+    if (!/[A-Za-zÀ-ÖØ-öø-ÿ0-9]/.test(withoutMarker)) {
+      continue;
+    }
+    cleaned.push(trimmed);
+  }
+  return cleaned.join('\n').trim();
 };
 
 const getHostname = (raw: string, title?: string) => {
