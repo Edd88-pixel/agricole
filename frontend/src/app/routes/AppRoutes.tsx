@@ -1,26 +1,25 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import AppShell from '@/components/layout/AppShell';
 import Skeleton from '@/components/ui/Skeleton';
 import Card from '@/components/ui/Card';
-import OnboardingFlow from '@/features/auth/components/OnboardingFlow';
-import DashboardHome from '@/features/dashboard/components/DashboardHome';
-import QuickScanForm from '@/features/diagnosis/components/QuickScanForm';
-import GuidedScanForm from '@/features/diagnosis/components/GuidedScanForm';
-import HistoryList from '@/features/history/components/HistoryList';
-import KnowledgeBase from '@/features/kb/components/KnowledgeBase';
-import PreferencesPanel from '@/features/settings/components/PreferencesPanel';
-import ProfileSettingsPanel from '@/features/settings/components/ProfileSettingsPanel';
-import AdminOverview from '@/features/common/components/AdminOverview';
-import MediaLibrary from '@/features/library/components/MediaLibrary';
+import AuthenticatedLayout from '@/app/routes/AuthenticatedLayout';
+import OnboardingPage from '@/pages/OnboardingPage';
+import DashboardPage from '@/pages/DashboardPage';
+import QuickDiagnosisPage from '@/pages/QuickDiagnosisPage';
+import GuidedDiagnosisPage from '@/pages/GuidedDiagnosisPage';
+import HistoryPage from '@/pages/HistoryPage';
+import KnowledgeBasePage from '@/pages/KnowledgeBasePage';
+import SettingsPage from '@/pages/SettingsPage';
+import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
+import AdminPage from '@/pages/AdminPage';
+import MediaLibraryPage from '@/pages/MediaLibraryPage';
+import HistoryDetailsPage from '@/pages/HistoryDetailsPage';
 import { useDataContext } from '@/app/providers/DataProvider';
 import { useTranslation } from 'react-i18next';
 import AuthGateway from '@/features/auth/components/AuthGateway';
 import { useAuthState, signOut } from '@/services/supabase/auth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { SupportedLocale } from '@/features/profile/types/profile';
-
-const LazyHistoryDetails = lazy(() => import('@/features/history/components/HistoryReport'));
 
 const AppRoutes = () => {
   const { session, isLoading: authLoading } = useAuthState();
@@ -107,192 +106,70 @@ const AppRoutes = () => {
     navigate('/', { replace: true });
   };
 
+  const layoutProps = {
+    userName,
+    userEmail: session.user.email ?? '',
+    userAvatar,
+    onSignOut: handleSignOut
+  };
+
   return (
     <Routes>
-      <Route
-        path="/onboarding"
-        element={
-          <div className="flex min-h-screen items-center justify-center bg-brand-background p-6">
-            <OnboardingFlow onComplete={handleOnboardingComplete} />
-          </div>
-        }
-      />
-      <Route
-        path="/"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <DashboardHome
-              userName={userName}
-              greetingName={greetingName}
-              recent={history.slice(0, 3)}
-              isLoading={historyLoading}
-            />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <DashboardHome
-              userName={userName}
-              greetingName={greetingName}
-              recent={history.slice(0, 3)}
-              isLoading={historyLoading}
-            />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/diagnosis/quick"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <QuickScanForm onResult={addResultToHistory} />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/diagnosis/guided"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <GuidedScanForm onResult={addResultToHistory} />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/history"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <HistoryList
+      <Route path="/onboarding" element={<OnboardingPage onComplete={handleOnboardingComplete} />} />
+      <Route element={<AuthenticatedLayout {...layoutProps} />}>
+        <Route
+          index
+          element={<DashboardPage userName={userName} greetingName={greetingName} recent={history.slice(0, 3)} isLoading={historyLoading} />}
+        />
+        <Route
+          path="/dashboard"
+          element={<DashboardPage userName={userName} greetingName={greetingName} recent={history.slice(0, 3)} isLoading={historyLoading} />}
+        />
+        <Route path="/diagnosis/quick" element={<QuickDiagnosisPage onResult={addResultToHistory} />} />
+        <Route path="/diagnosis/guided" element={<GuidedDiagnosisPage onResult={addResultToHistory} />} />
+        <Route
+          path="/history"
+          element={
+            <HistoryPage
               entries={history}
               onToggleResolved={toggleResolved}
               onDelete={removeDiagnosis}
               onUpdate={updateDiagnosis}
             />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/history/:id"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-              <LazyHistoryDetails />
-            </Suspense>
-          </AppShell>
-        }
-      />
-      <Route
-        path="/knowledge-base"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <KnowledgeBase articles={articles} isLoading={articlesLoading} />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/library"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <MediaLibrary entries={history} isLoading={historyLoading} />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-              <ProfileSettingsPanel
-                profile={profile}
-                onUpdate={updateProfileDetails}
-                greetingName={greetingName}
-                userEmail={session.user.email ?? ''}
-              />
-              <PreferencesPanel language={i18n.language} onChangeLanguage={handleLanguageChange} />
-            </div>
-          </AppShell>
-        }
-      />
-      <Route
-        path="/settings/profile"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <ProfileSettingsPanel
+          }
+        />
+        <Route path="/history/:id" element={<HistoryDetailsPage />} />
+        <Route path="/knowledge-base" element={<KnowledgeBasePage articles={articles} isLoading={articlesLoading} />} />
+        <Route path="/library" element={<MediaLibraryPage entries={history} isLoading={historyLoading} />} />
+        <Route
+          path="/settings"
+          element={
+            <SettingsPage
               profile={profile}
-              onUpdate={updateProfileDetails}
               greetingName={greetingName}
               userEmail={session.user.email ?? ''}
+              language={i18n.language}
+              onChangeLanguage={handleLanguageChange}
+              onUpdate={updateProfileDetails}
             />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <AppShell
-            userName={userName}
-            userEmail={session.user.email ?? ''}
-            userAvatar={userAvatar}
-            onSignOut={handleSignOut}
-          >
-            <AdminOverview pendingFeedback={3} pendingArticles={2} />
-          </AppShell>
-        }
-      />
+          }
+        />
+        <Route
+          path="/settings/profile"
+          element={
+            <ProfileSettingsPage
+              profile={profile}
+              greetingName={greetingName}
+              userEmail={session.user.email ?? ''}
+              onUpdate={updateProfileDetails}
+            />
+          }
+        />
+        <Route path="/admin" element={<AdminPage pendingFeedback={3} pendingArticles={2} />} />
+      </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
-);
+  );
 };
 
 export default AppRoutes;
