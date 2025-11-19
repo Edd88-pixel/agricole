@@ -1,6 +1,11 @@
 # Agricole – Guide d'installation
 
-Ce dépôt contient l'application web Agricole (React + TypeScript + Tailwind) et son backend Supabase. Ce document décrit uniquement les étapes d'installation et de configuration pour un environnement de développement ou d'intégration.
+Ce dépôt contient l'application web Agricole (React + TypeScript + Tailwind) et un backend Node/Express minimal pour servir d'API. Le dossier racine est désormais organisé en deux parties :
+
+- `frontend/` : application React (Vite + TypeScript + Tailwind + Supabase)
+- `backend/` : serveur Express minimal (point d'entrée API, dossier Supabase)
+
+Ce document décrit uniquement les étapes d'installation et de configuration pour un environnement de développement ou d'intégration.
 
 ## 1. Prérequis
 
@@ -17,34 +22,48 @@ Ce dépôt contient l'application web Agricole (React + TypeScript + Tailwind) e
    ```
 2. **Installer les dépendances**
    ```bash
-   npm install
+   cd frontend && npm install
+   cd ../backend && npm install
    ```
 3. **Configurer les variables d'environnement**
-   ```bash
-   cp .env.example .env
-   ```
-   Renseignez ensuite les variables suivantes avec vos valeurs :
-   ```ini
-   VITE_SUPABASE_URL=https://<your-project>.supabase.co
-   VITE_SUPABASE_ANON_KEY=<public-anon-key>
-   VITE_GEMINI_MODEL=gemini-2.5-flash
-   VITE_SUPABASE_STORAGE_BUCKET_DIAGNOSIS=<bucket-name>
-   VITE_SUPABASE_STORAGE_BUCKET_REPORTS=<bucket-name>
-   VITE_SUPABASE_STORAGE_BUCKET_PROFILE=<bucket-name>
-   VITE_SUPABASE_FUNCTION_DIAGNOSIS=<edge-function-name>
-   VITE_SUPABASE_FUNCTION_KNOWLEDGE=<edge-function-name>
-   SUPABASE_GEMINI_API_KEY=<server-side-api-key>
-   ```
+   - Frontend
+     ```bash
+     cd frontend
+     cp .env.example .env
+     ```
+     Variables disponibles :
+     ```ini
+     VITE_API_BASE_URL=http://localhost:4000
+     VITE_SUPABASE_URL=https://<your-project>.supabase.co
+     VITE_SUPABASE_ANON_KEY=<public-anon-key>
+     VITE_GEMINI_MODEL=gemini-2.5-flash
+     VITE_SUPABASE_STORAGE_BUCKET_DIAGNOSIS=<bucket-name>
+     VITE_SUPABASE_STORAGE_BUCKET_REPORTS=<bucket-name>
+     VITE_SUPABASE_STORAGE_BUCKET_PROFILE=<bucket-name>
+     VITE_SUPABASE_FUNCTION_DIAGNOSIS=<edge-function-name>
+     VITE_SUPABASE_FUNCTION_KNOWLEDGE=<edge-function-name>
+     SUPABASE_GEMINI_API_KEY=<server-side-api-key>
+     ```
+   - Backend
+     ```bash
+     cd ../backend
+     cp .env.example .env
+     ```
+     Par défaut, seul le port du serveur est requis :
+     ```ini
+     PORT=4000
+     ```
 
 ## 3. Provisionnement Supabase
 
 1. **Connexion et liaison du projet**
    ```bash
+   cd backend
    supabase login
    supabase link --project-ref <your-project-ref>
    ```
 2. **Migration de la base de données**
-   - Placez vos scripts SQL dans `supabase/migrations`.
+   - Placez vos scripts SQL dans `backend/supabase/migrations`.
    - Appliquez-les avec :
      ```bash
      supabase db push
@@ -65,14 +84,23 @@ Ce dépôt contient l'application web Agricole (React + TypeScript + Tailwind) e
 
 - **Développement**
   ```bash
+  cd backend
+  npm run dev
+  ```
+
+- **Frontend (dans un second terminal)**
+  ```bash
+  cd frontend
   npm run dev
   ```
 - **Tests**
   ```bash
+  cd frontend
   npm test
   ```
 - **Build de production**
   ```bash
+  cd frontend
   npm run build
   ```
 
