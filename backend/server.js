@@ -1,20 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import app from './src/app.js';
+import { config } from './src/config/env.js';
 
-dotenv.config();
+const { port } = config;
 
-const app = express();
-const PORT = process.env.PORT || 4000;
-
-app.use(cors());
-app.use(express.json());
-
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
-});
-
-app.listen(PORT, () => {
+app.listen(port, () => {
   // eslint-disable-next-line no-console
-  console.log(`Backend API running on port ${PORT}`);
+  console.log(`Backend API running on port ${port}`);
 });

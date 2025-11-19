@@ -14,6 +14,24 @@ Ce document décrit uniquement les étapes d'installation et de configuration po
 - Supabase CLI ≥ 1.190
 - Accès à un projet Supabase configuré (URL, clés, buckets, Edge Functions)
 
+## Architecture backend
+
+Le backend est désormais organisé en couches explicites :
+
+- `src/config/` : chargement des variables d'environnement et configuration des logs.
+- `src/middlewares/` : middlewares applicatifs (logger HTTP, gestion des 404 et des erreurs).
+- `src/routes/` : définition des endpoints (préfixés par `/api`).
+- `src/controllers/` : gestion des requêtes/réponses HTTP.
+- `src/services/` : logique métier et orchestration des données.
+- `src/models/` : accès aux données ou modèles métiers.
+
+Le point d'entrée applicatif est `src/app.js` (montage d'Express) et le serveur est lancé depuis `server.js`.
+
+### Ports et endpoints principaux
+
+- API HTTP : `http://localhost:4000`
+- Endpoint de healthcheck : `GET /api/health` → `{ "status": "ok" }`
+
 ## 2. Installation locale
 
 1. **Cloner le dépôt**
@@ -82,18 +100,42 @@ Ce document décrit uniquement les étapes d'installation et de configuration po
 
 ## 4. Lancement et tests
 
-- **Développement**
+### Backend
+
+- **Installer les dépendances**
   ```bash
   cd backend
+  npm install
+  ```
+
+- **Démarrer l'API en développement** (port par défaut : `4000`)
+  ```bash
   npm run dev
   ```
 
-- **Frontend (dans un second terminal)**
+- **Tests unitaires**
+  ```bash
+  npm run test:unit
+  ```
+
+- **Tests d'intégration**
+  ```bash
+  npm run test:integration
+  ```
+
+- **Suite complète des tests backend**
+  ```bash
+  npm test
+  ```
+
+### Frontend
+
+- **Lancer le frontend** (dans un second terminal)
   ```bash
   cd frontend
   npm run dev
   ```
-- **Tests**
+- **Tests frontend**
   ```bash
   cd frontend
   npm test
