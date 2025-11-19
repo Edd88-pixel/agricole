@@ -130,6 +130,11 @@ Le point d'entrée applicatif est `src/app.js` (montage d'Express) et le serveur
 
 ### Frontend
 
+- **Installer les dépendances**
+  ```bash
+  cd frontend
+  npm install
+  ```
 - **Lancer le frontend** (dans un second terminal)
   ```bash
   cd frontend
@@ -145,6 +150,21 @@ Le point d'entrée applicatif est `src/app.js` (montage d'Express) et le serveur
   cd frontend
   npm run build
   ```
+
+## Architecture frontend
+
+- **App shell et layout** : `src/components/layout` contient l'enveloppe globale et les menus ; `src/pages` regroupe les vues routées (tableau de bord, historique, médiathèque, etc.).
+- **Composants UI réutilisables** : `src/components/ui` rassemble les primitives visuelles (boutons, badges de statut, skeletons...).
+- **Services** :
+  - `src/services/api` centralise les appels HTTP vers le backend Express via `apiClient` (base URL : `VITE_API_BASE_URL`).
+  - `src/services/supabase` encapsule l'accès Supabase (auth, stockage, edge functions).
+- **Hooks** : `src/hooks` expose la logique métier partagée (`useSupabaseData`, `useUserProfile`, `useBackendHealth`, etc.).
+
+### Variables d'environnement frontend
+
+- `VITE_API_BASE_URL` : URL de base de l'API Express (ex. `http://localhost:4000`).
+- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` : configuration Supabase.
+- Autres variables optionnelles : `VITE_GEMINI_MODEL`, buckets de stockage (`VITE_SUPABASE_STORAGE_BUCKET_*`) et noms de fonctions Edge (`VITE_SUPABASE_FUNCTION_*`).
 
 ## 5. Dépannage rapide
 
