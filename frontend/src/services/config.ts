@@ -11,6 +11,7 @@ const getEnvValue = (key: string, fallback?: string) => {
 };
 
 export const appConfig = {
+  apiBaseUrl: getEnvValue('VITE_API_BASE_URL', 'http://localhost:4000'),
   supabase: {
     storageBuckets: {
       diagnosis: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_DIAGNOSIS', 'diagnosis-images'),
