@@ -1,6 +1,6 @@
 import { invokeEdgeFunction } from '@/services/supabase/functions';
 import { appConfig } from '@/services/config';
-import { uploadDiagnosisImages } from '@/services/supabase/storage';
+import { createSignedDiagnosisUrls, uploadDiagnosisImages } from '@/services/supabase/storage';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -27,8 +27,10 @@ export const sendKnowledgeMessage = async ({ prompt, history, files }: Knowledge
   }
 
   let uploadedPaths: string[] = [];
+  let signedUrls: string[] = [];
   if (files.length > 0) {
     uploadedPaths = await uploadDiagnosisImages(files);
+    signedUrls = await createSignedDiagnosisUrls(uploadedPaths);
   }
 
   const response = await invokeEdgeFunction<KnowledgeResponse>(appConfig.supabase.functions.knowledgeChat, {
@@ -37,11 +39,13 @@ export const sendKnowledgeMessage = async ({ prompt, history, files }: Knowledge
       prompt,
       history,
       imagePaths: uploadedPaths,
-      // schémas alternatifs pour compatibilité avec d'autres fonctions
+      signedUrls,
+      // schémas pour compatibilité avec d'autres fonctions
       query: prompt,
       message: prompt,
       messages: history,
-      images: uploadedPaths
+      images: uploadedPaths,
+      signedImagePaths: uploadedPaths
     }
   });
 
