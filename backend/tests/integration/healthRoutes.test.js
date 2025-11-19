@@ -18,4 +18,10 @@ describe('GET /api/health', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: 'ok' });
   });
+
+  it('exposes CORS headers so the frontend can reach the API', async () => {
+    const response = await request(server).get('/api/health');
+
+    expect(response.headers['access-control-allow-origin']).toBe('*');
+  });
 });

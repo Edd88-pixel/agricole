@@ -151,6 +151,32 @@ Le point d'entrée applicatif est `src/app.js` (montage d'Express) et le serveur
   npm run build
   ```
 
+## 5. Intégration frontend / backend
+
+- Le frontend lit l'URL de base de l'API via la variable `VITE_API_BASE_URL` (voir `.env` dans `frontend/`).
+- L'URL de base par défaut est `http://localhost:4000`; elle correspond au port du backend Express.
+- Les appels HTTP sont centralisés dans `frontend/src/services/api/client.ts`, qui ajoute le préfixe `/api` (ex. `GET /api/health`).
+- Le backend expose CORS en mode permissif (entête `Access-Control-Allow-Origin: *`), ce qui permet à Vite (`http://localhost:5173`) ou à une build de production de communiquer sans configuration additionnelle.
+- Pour un déploiement plus strict, vous pouvez fixer l'origine autorisée en configurant `cors()` dans `backend/src/app.js` (optionnel, non requis pour le développement local).
+
+## 6. Tests API avec Postman
+
+- **URL de base** : `http://localhost:4000` (variable d'environnement suggérée dans Postman : `apiBaseUrl`).
+- **Authentification/headers** : aucun token n'est requis pour l'instant ; accepter les réponses JSON (`Accept: application/json`).
+- **Endpoints principaux** :
+
+  | Méthode | Chemin                      | Paramètres | Corps attendu | Réponse attendue |
+  |---------|----------------------------|------------|---------------|------------------|
+  | GET     | `{{apiBaseUrl}}/api/health` | Aucun      | N/A           | `200 OK`, JSON `{ "status": "ok" }` |
+
+- **Configurer un environnement Postman** :
+  1. Créez un environnement `Agricole Local` avec la variable `apiBaseUrl` = `http://localhost:4000`.
+  2. Ajoutez une requête `GET {{apiBaseUrl}}/api/health` dans une collection `Agricole API`.
+  3. Optionnel : ajoutez l'entête `Accept: application/json` pour forcer le parseur JSON de Postman.
+  4. Exécutez la requête ; vous devez obtenir un corps `{ "status": "ok" }` et vérifier que l'entête `Access-Control-Allow-Origin` est présent.
+
+> Lorsque d'autres endpoints seront ajoutés (authentification, CRUD, etc.), suivez la même convention : préfixe `/api`, URL de base injectée via `VITE_API_BASE_URL` côté frontend et variable `apiBaseUrl` dans Postman.
+
 ## Architecture frontend
 
 - **App shell et layout** : `src/components/layout` contient l'enveloppe globale et les menus ; `src/pages` regroupe les vues routées (tableau de bord, historique, médiathèque, etc.).
@@ -166,7 +192,7 @@ Le point d'entrée applicatif est `src/app.js` (montage d'Express) et le serveur
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` : configuration Supabase.
 - Autres variables optionnelles : `VITE_GEMINI_MODEL`, buckets de stockage (`VITE_SUPABASE_STORAGE_BUCKET_*`) et noms de fonctions Edge (`VITE_SUPABASE_FUNCTION_*`).
 
-## 5. Dépannage rapide
+## 7. Dépannage rapide
 
 - Vérifiez que `.env` est complet et chargé par Vite.
 - Assurez-vous que `supabase link` référence bien le bon projet.
