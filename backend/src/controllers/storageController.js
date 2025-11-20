@@ -1,6 +1,11 @@
 import { randomUUID } from 'crypto';
 import { supabaseService } from '../services/supabaseService.js';
-import { buildHttpError, parsePositiveInteger, toStringArray } from '../utils/validation.js';
+import {
+  buildHttpError,
+  isNonEmptyString,
+  parsePositiveInteger,
+  toStringArray
+} from '../utils/validation.js';
 
 const inferExtension = (filename) => {
   const parts = filename.split('.');
@@ -109,10 +114,11 @@ export const createKnowledgeSignedUrls = async (req, res, next) => {
 
 export const createProfileSignedUrl = async (req, res, next) => {
   try {
-    const path = toStringArray([req.body?.path])[0];
-    if (!path) {
+    const rawPath = req.body?.path;
+    if (!isNonEmptyString(rawPath)) {
       throw buildHttpError('Profile image path is required', 400);
     }
+    const path = toStringArray([rawPath])[0];
 
     const expiresIn = parsePositiveInteger(req.body?.expiresIn, 600);
     const signedUrl = await supabaseService.createSignedUrl(path, {
