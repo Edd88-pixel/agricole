@@ -1,6 +1,6 @@
 import { getSupabaseClient } from './supabaseClient.js';
 
-const supabase = getSupabaseClient();
+const supabase = () => getSupabaseClient();
 
 const mapAuthError = (error) => {
   if (!error) return null;
@@ -11,14 +11,14 @@ const mapAuthError = (error) => {
 
 export const authService = {
   async signIn(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase().auth.signInWithPassword({ email, password });
     const mapped = mapAuthError(error);
     if (mapped) throw mapped;
     return data;
   },
 
   async signUp({ email, password, firstName, lastName }) {
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabase().auth.signUp({
       email,
       password,
       options: {
@@ -38,7 +38,7 @@ export const authService = {
   },
 
   async getUserFromToken(token) {
-    const { data, error } = await supabase.auth.getUser(token);
+    const { data, error } = await supabase().auth.getUser(token);
     const mapped = mapAuthError(error);
     if (mapped) throw mapped;
     return data.user;
@@ -46,6 +46,6 @@ export const authService = {
 
   async signOut(refreshToken) {
     if (!refreshToken) return;
-    await supabase.auth.admin.signOut(refreshToken);
+    await supabase().auth.admin.signOut(refreshToken);
   }
 };
