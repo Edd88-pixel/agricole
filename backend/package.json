@@ -22,5 +22,8 @@
   "devDependencies": {
     "supertest": "^6.3.4",
     "vitest": "^1.6.0"
+  },
+  "overrides": {
+    "esbuild": "0.25.12"
   }
 }
