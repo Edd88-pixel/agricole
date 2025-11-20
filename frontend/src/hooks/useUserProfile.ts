@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { User } from '@supabase/supabase-js';
 import type { OnboardingPayload, ProfileUpdate, SupportedLocale, UserProfile } from '@/features/profile/types/profile';
-import { createProfile, fetchProfile, saveOnboardingProfile, updateProfile } from '@/services/supabase/profile';
-import { createSignedProfileUrl } from '@/services/supabase/storage';
+import { createProfile, fetchProfile, saveOnboardingProfile, updateProfile } from '@/services/api/profile';
+import { createSignedProfileUrl } from '@/services/api/storage';
+import type { AuthUser } from '@/services/api/auth';
 
 type ProfileState = {
   profile: UserProfile | null;
@@ -14,11 +14,11 @@ type ProfileState = {
   updateProfileDetails: (payload: ProfileUpdate) => Promise<void>;
 };
 
-const inferDisplayName = (user: User) =>
+const inferDisplayName = (user: AuthUser) =>
   (user.user_metadata?.full_name as string | undefined)?.trim() ||
   (user.email ? user.email.split('@')[0] ?? user.email : 'Producer');
 
-const inferNames = (user: User) => {
+const inferNames = (user: AuthUser) => {
   const metaFirst = (user.user_metadata?.first_name as string | undefined)?.trim();
   const metaLast = (user.user_metadata?.last_name as string | undefined)?.trim();
   if (metaFirst || metaLast) {
@@ -55,7 +55,7 @@ const decorateProfile = async (profile: UserProfile): Promise<UserProfile> => {
   }
 };
 
-const inferLocale = (user: User): SupportedLocale => {
+const inferLocale = (user: AuthUser): SupportedLocale => {
   const candidate = (user.user_metadata?.locale as string | undefined)?.slice(0, 2)?.toLowerCase();
   if (candidate === 'en' || candidate === 'fr') {
     return candidate;
@@ -63,7 +63,7 @@ const inferLocale = (user: User): SupportedLocale => {
   return 'fr';
 };
 
-export const useUserProfile = (user: User | null | undefined): ProfileState => {
+export const useUserProfile = (user: AuthUser | null | undefined): ProfileState => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(user));
   const [error, setError] = useState<Error>();
@@ -78,11 +78,10 @@ export const useUserProfile = (user: User | null | undefined): ProfileState => {
     setIsLoading(true);
     setError(undefined);
     try {
-      let data = await fetchProfile(user.id);
+      let data = await fetchProfile();
       if (!data) {
         const names = inferNames(user);
         data = await createProfile({
-          id: user.id,
           email: user.email ?? undefined,
           displayName: inferDisplayName(user),
           firstName: names.firstName,
@@ -108,7 +107,7 @@ export const useUserProfile = (user: User | null | undefined): ProfileState => {
   const completeOnboarding = useCallback(
     async (payload: OnboardingPayload) => {
       if (!user) return;
-      const updated = await saveOnboardingProfile(user.id, payload);
+      const updated = await saveOnboardingProfile(payload);
       setProfile(updated);
     },
     [user]
@@ -117,7 +116,7 @@ export const useUserProfile = (user: User | null | undefined): ProfileState => {
   const updateProfileDetails = useCallback(
     async (payload: ProfileUpdate) => {
       if (!user) return;
-      const updated = await updateProfile(user.id, payload);
+      const updated = await updateProfile(payload);
       const decorated = await decorateProfile(updated);
       setProfile(decorated);
     },

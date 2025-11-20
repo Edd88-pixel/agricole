@@ -1,6 +1,5 @@
-import { invokeEdgeFunction } from '@/services/supabase/functions';
-import { createSignedDiagnosisUrls, uploadDiagnosisImages } from '@/services/supabase/storage';
 import { appConfig } from '@/services/config';
+import { invokeDiagnosisInference } from '@/services/api/functions';
 import type { DiagnosisResult } from '../types/diagnosis';
 
 type InferenceInput = {
@@ -27,39 +26,14 @@ export const runInference = async (payload: InferenceInput): Promise<DiagnosisRe
     throw new InferenceError('At least one image is required for inference.');
   }
 
-  if (!appConfig.supabase.functions.diagnosisInfer) {
-    throw new InferenceError('Diagnosis edge function is not configured.');
-  }
-
   try {
-    const uploadedPaths = await uploadDiagnosisImages(payload.files);
-    if (uploadedPaths.length === 0) {
-      throw new InferenceError('No images were uploaded to Supabase storage.');
-    }
-
-    const signedUrls = await createSignedDiagnosisUrls(uploadedPaths);
-    if (signedUrls.length === 0) {
-      throw new InferenceError('Unable to create signed URLs for uploaded images.');
-    }
-
-    const reqBody: Record<string, unknown> = {
+    const response = await invokeDiagnosisInference<EdgeDiagnosisResponse>({
       crop: payload.crop,
       stage: payload.stage,
       symptoms: payload.symptoms,
       context: payload.context,
-      imagePaths: uploadedPaths,
-      // compat payload keys for alternative function implementations
-      images: uploadedPaths,
-      signedImagePaths: uploadedPaths,
-      query: `${payload.crop} | ${payload.stage}`,
-      // Fournit directement des URL signées si le handler les accepte
-      signedUrls
-    };
-    if (appConfig.gemini.model) {
-      reqBody.model = appConfig.gemini.model;
-    }
-    const response = await invokeEdgeFunction<EdgeDiagnosisResponse>(appConfig.supabase.functions.diagnosisInfer, {
-      body: reqBody
+      files: payload.files,
+      model: appConfig.gemini.model
     });
 
     if (!response.id) {
@@ -83,9 +57,10 @@ export const runInference = async (payload: InferenceInput): Promise<DiagnosisRe
       return 0.5;
     };
 
+    const signedUrls = (response as any).signedUrls ?? [];
     const createdAt = response.createdAt ?? new Date().toISOString();
     const images = Array.isArray(response.images) && response.images.length > 0 ? response.images : signedUrls;
-    const imagePaths = response.imagePaths ?? uploadedPaths;
+    const imagePaths = response.imagePaths ?? images;
     const numericConfidence = normalizeConfidence((response as any).confidence ?? (response as any).primary?.confidence);
     const normalizedPrimary = { ...response.primary, confidence: numericConfidence };
     const normalizedAlternatives = (response.alternatives ?? []).map((alt) => ({

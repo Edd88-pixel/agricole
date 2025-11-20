@@ -17,7 +17,7 @@ import HistoryDetailsPage from '@/pages/HistoryDetailsPage';
 import { useDataContext } from '@/app/providers/DataProvider';
 import { useTranslation } from 'react-i18next';
 import AuthGateway from '@/features/auth/components/AuthGateway';
-import { useAuthState, signOut } from '@/services/supabase/auth';
+import { useAuthState, signOut } from '@/services/api/auth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { SupportedLocale } from '@/features/profile/types/profile';
 
