@@ -71,15 +71,20 @@ export const useAuthState = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const tokens = getStoredTokens();
-    if (!tokens?.accessToken) {
-      setIsLoading(false);
-      return;
-    }
+    let isActive = true;
 
-    const hydrate = async (stored: StoredTokens) => {
+    const hydrate = async (stored: StoredTokens | null) => {
+      setIsLoading(true);
+      if (!stored?.accessToken) {
+        if (!isActive) return;
+        setSession(null);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const user = await fetchCurrentUser(stored.accessToken);
+        if (!isActive) return;
         setSession({
           user,
           accessToken: stored.accessToken,
@@ -89,12 +94,29 @@ export const useAuthState = () => {
       } catch (error) {
         console.error('Failed to hydrate user from backend', error);
         clearTokens();
+        if (isActive) {
+          setSession(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (isActive) {
+          setIsLoading(false);
+        }
       }
     };
 
-    void hydrate(tokens);
+    const handleTokensChange = () => {
+      void hydrate(getStoredTokens());
+    };
+
+    handleTokensChange();
+    window.addEventListener('storage', handleTokensChange);
+    window.addEventListener('agricole-auth-tokens-changed', handleTokensChange);
+
+    return () => {
+      isActive = false;
+      window.removeEventListener('storage', handleTokensChange);
+      window.removeEventListener('agricole-auth-tokens-changed', handleTokensChange);
+    };
   }, []);
 
   return { session, isLoading };

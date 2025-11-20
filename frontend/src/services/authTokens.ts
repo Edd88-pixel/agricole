@@ -23,12 +23,19 @@ export const getStoredTokens = (): StoredTokens | null => readStorage();
 
 export const getAccessToken = (): string | undefined => readStorage()?.accessToken;
 
+const emitTokensChanged = () => {
+  if (!isBrowser()) return;
+  window.dispatchEvent(new Event('agricole-auth-tokens-changed'));
+};
+
 export const storeTokens = (tokens: StoredTokens) => {
   if (!isBrowser()) return;
   localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
+  emitTokensChanged();
 };
 
 export const clearTokens = () => {
   if (!isBrowser()) return;
   localStorage.removeItem(TOKEN_KEY);
+  emitTokensChanged();
 };
