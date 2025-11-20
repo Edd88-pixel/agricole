@@ -3,7 +3,23 @@ import { createSignedDiagnosisUrls, removeDiagnosisImages } from './storage';
 import type { DiagnosisClass, DiagnosisResult } from '@/features/diagnosis/types/diagnosis';
 import type { HistoryEntry } from '@/features/history/types/history';
 
-const mapRowToHistoryEntry = async (row: any): Promise<HistoryEntry> => {
+type DiagnosisRow = {
+  id: string;
+  crop: string;
+  stage: string;
+  symptoms?: string[];
+  context?: string | null;
+  created_at: string;
+  status?: string | null;
+  confidence?: number | null;
+  primary?: DiagnosisClass | null;
+  alternatives?: DiagnosisClass[];
+  actions?: string[];
+  resolved?: boolean;
+  images?: string[];
+};
+
+const mapRowToHistoryEntry = async (row: DiagnosisRow): Promise<HistoryEntry> => {
   const status = row.status ?? 'pending';
   const confidence = row.confidence ?? 0.5;
   const primary =
@@ -43,7 +59,7 @@ const mapRowToHistoryEntry = async (row: any): Promise<HistoryEntry> => {
 };
 
 export const fetchDiagnoses = async (): Promise<HistoryEntry[]> => {
-  const { data } = await apiClient.get<{ data: any[] }>('api/diagnoses');
+  const { data } = await apiClient.get<{ data: DiagnosisRow[] }>('api/diagnoses');
   const rows = data ?? [];
   if (rows.length === 0) return [];
   return Promise.all(rows.map((row) => mapRowToHistoryEntry(row)));

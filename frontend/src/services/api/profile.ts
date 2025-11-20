@@ -7,7 +7,22 @@ import type {
   UserProfile
 } from '@/features/profile/types/profile';
 
-const mapRowToProfile = (row: any): UserProfile => ({
+type ProfileRow = {
+  id: string;
+  email?: string | null;
+  display_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  avatar_path?: string | null;
+  locale?: SupportedLocale | null;
+  objectives?: string[] | null;
+  location?: string | null;
+  crops?: string[] | null;
+  onboarding_completed?: boolean | null;
+  created_at?: string;
+};
+
+const mapRowToProfile = (row: ProfileRow): UserProfile => ({
   id: row.id,
   email: row.email ?? undefined,
   displayName: row.display_name ?? '',
@@ -23,21 +38,21 @@ const mapRowToProfile = (row: any): UserProfile => ({
 });
 
 export const fetchProfile = async (): Promise<UserProfile | null> => {
-  const { data } = await apiClient.get<{ data: any | null }>('api/profile');
+  const { data } = await apiClient.get<{ data: ProfileRow | null }>('api/profile');
   return data ? mapRowToProfile(data) : null;
 };
 
 export const createProfile = async (payload: ProfileInsert): Promise<UserProfile> => {
-  const { data } = await apiClient.post<{ data: any }>('api/profile', payload);
+  const { data } = await apiClient.post<{ data: ProfileRow }>('api/profile', payload);
   return mapRowToProfile(data);
 };
 
 export const updateProfile = async (payload: ProfileUpdate): Promise<UserProfile> => {
-  const { data } = await apiClient.patch<{ data: any }>('api/profile', payload);
+  const { data } = await apiClient.patch<{ data: ProfileRow }>('api/profile', payload);
   return mapRowToProfile(data);
 };
 
 export const saveOnboardingProfile = async (payload: OnboardingPayload): Promise<UserProfile> => {
-  const { data } = await apiClient.post<{ data: any }>('api/profile/onboarding', payload);
+  const { data } = await apiClient.post<{ data: ProfileRow }>('api/profile/onboarding', payload);
   return mapRowToProfile(data);
 };
