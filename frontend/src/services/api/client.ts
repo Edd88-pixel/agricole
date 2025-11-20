@@ -35,42 +35,63 @@ export type ApiRequestOptions = Omit<RequestInit, 'body'> & {
   method?: ApiMethod;
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
+  timeoutMs?: number;
 };
 
 const parseResponse = async <T>(response: Response): Promise<T> => {
   const contentType = response.headers.get('Content-Type') ?? '';
   if (contentType.includes('application/json')) {
-    return (await response.json()) as T;
+    try {
+      return (await response.json()) as T;
+    } catch {
+      throw new ApiError('Invalid JSON response', response.status);
+    }
   }
   return (await response.text()) as unknown as T;
 };
 
 export const apiClient = {
   async request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-    const { method = 'GET', query, body, headers, ...rest } = options;
+    const { method = 'GET', query, body, headers, timeoutMs = 10000, ...rest } = options;
     const url = buildUrl(path, query);
 
     const authToken = getAccessToken();
     const authHeaders = authToken ? { Authorization: `Bearer ${authToken}` } : {};
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-    const response = await fetch(url, {
-      method,
-      headers: {
-        Accept: 'application/json',
-        ...(body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-        ...authHeaders,
-        ...headers
-      },
-      body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
-      ...rest
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!response.ok) {
-      const details = await parseResponse<unknown>(response);
-      throw new ApiError('Request failed', response.status, details);
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          Accept: 'application/json',
+          ...(body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+          ...authHeaders,
+          ...headers
+        },
+        body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+        signal: controller.signal,
+        ...rest
+      });
+
+      if (!response.ok) {
+        const details = await parseResponse<unknown>(response).catch(() => undefined);
+        throw new ApiError('Request failed', response.status, details);
+      }
+
+      return parseResponse<T>(response);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+
+      const isAbort = (error as Error)?.name === 'AbortError';
+      const message = isAbort ? 'Request timed out' : 'Network request failed';
+      throw new ApiError(message);
+    } finally {
+      clearTimeout(timeout);
     }
-
-    return parseResponse<T>(response);
   },
 
   get<T>(path: string, options?: Omit<ApiRequestOptions, 'method' | 'body'>) {

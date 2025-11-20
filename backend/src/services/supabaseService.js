@@ -1,12 +1,48 @@
 import { config } from '../config/env.js';
+import { buildHttpError } from '../utils/validation.js';
 import { getSupabaseClient } from './supabaseClient.js';
 
 const supabase = () => getSupabaseClient();
 
-const throwWithContext = (error, context) => {
-  if (!error) return;
-  const message = context ? `${context}: ${error.message}` : error.message;
-  throw new Error(message);
+const mapSupabaseError = (error, context) => {
+  if (!error) return null;
+  if (error.code === 'PGRST116' || error.code === 'PGRST404' || error.status === 404 || error.status === 406) {
+    return buildHttpError('Resource not found', 404);
+  }
+
+  const status = typeof error.status === 'number' && error.status >= 400 ? error.status : 502;
+  const message = status >= 500 ? context || 'Unexpected service error' : error.message || context || 'Request failed';
+
+  return buildHttpError(message, status);
+};
+
+const ensurePresent = (value, message, status = 400) => {
+  if (!value) {
+    throw buildHttpError(message, status);
+  }
+};
+
+const handleResult = (data, error, { context, notFoundMessage } = {}) => {
+  const mappedError = mapSupabaseError(error, context);
+  if (mappedError) throw mappedError;
+
+  if (notFoundMessage) {
+    const isEmptyArray = Array.isArray(data) && data.length === 0;
+    if (!data || isEmptyArray) {
+      throw buildHttpError(notFoundMessage, 404);
+    }
+  }
+};
+
+const wrapSupabaseCall = async (fn, options = {}) => {
+  try {
+    const { data, error } = await fn();
+    handleResult(data, error, options);
+    return data;
+  } catch (error) {
+    if (error?.status) throw error;
+    throw buildHttpError(options?.context || 'Upstream service unavailable', 502);
+  }
 };
 
 const tables = {
@@ -25,86 +61,128 @@ const buckets = {
 
 export const supabaseService = {
   async fetchDiagnosesForUser(userId) {
-    const { data, error } = await supabase()
-      .from(tables.diagnoses)
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    ensurePresent(userId, 'User id is required', 401);
 
-    throwWithContext(error, 'Failed to fetch diagnoses');
+    const data = await wrapSupabaseCall(
+      () =>
+        supabase()
+          .from(tables.diagnoses)
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false }),
+      { context: 'Failed to fetch diagnoses' }
+    );
 
     return data ?? [];
   },
 
   async upsertDiagnosis(payload) {
-    const { error } = await supabase()
-      .from(tables.diagnoses)
-      .upsert(payload, { onConflict: 'id' });
-    throwWithContext(error, 'Failed to upsert diagnosis');
+    ensurePresent(payload?.id, 'Diagnosis id is required');
+    ensurePresent(payload?.user_id, 'User id is required', 401);
+
+    await wrapSupabaseCall(
+      () => supabase().from(tables.diagnoses).upsert(payload, { onConflict: 'id' }),
+      { context: 'Failed to upsert diagnosis' }
+    );
   },
 
   async updateDiagnosisResolved(id, userId, resolved) {
-    const { error } = await supabase()
-      .from(tables.diagnoses)
-      .update({ resolved })
-      .eq('id', id)
-      .eq('user_id', userId);
+    ensurePresent(id, 'Diagnosis id is required');
+    ensurePresent(userId, 'User id is required', 401);
 
-    throwWithContext(error, 'Failed to update diagnosis resolution');
+    await wrapSupabaseCall(
+      () =>
+        supabase()
+          .from(tables.diagnoses)
+          .update({ resolved })
+          .eq('id', id)
+          .eq('user_id', userId)
+          .select('id')
+          .single(),
+      { context: 'Failed to update diagnosis resolution', notFoundMessage: 'Diagnosis not found' }
+    );
   },
 
   async updateDiagnosisDetails(id, userId, updates) {
-    const { error } = await supabase()
-      .from(tables.diagnoses)
-      .update(updates)
-      .eq('id', id)
-      .eq('user_id', userId);
+    ensurePresent(id, 'Diagnosis id is required');
+    ensurePresent(userId, 'User id is required', 401);
 
-    throwWithContext(error, 'Failed to update diagnosis details');
+    await wrapSupabaseCall(
+      () =>
+        supabase()
+          .from(tables.diagnoses)
+          .update(updates)
+          .eq('id', id)
+          .eq('user_id', userId)
+          .select('id')
+          .single(),
+      { context: 'Failed to update diagnosis details', notFoundMessage: 'Diagnosis not found' }
+    );
   },
 
   async deleteDiagnosis(id, userId) {
-    const { error } = await supabase()
-      .from(tables.diagnoses)
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId);
+    ensurePresent(id, 'Diagnosis id is required');
+    ensurePresent(userId, 'User id is required', 401);
 
-    throwWithContext(error, 'Failed to delete diagnosis');
+    await wrapSupabaseCall(
+      () =>
+        supabase()
+          .from(tables.diagnoses)
+          .delete()
+          .eq('id', id)
+          .eq('user_id', userId)
+          .select('id')
+          .single(),
+      { context: 'Failed to delete diagnosis', notFoundMessage: 'Diagnosis not found' }
+    );
   },
 
   async fetchKnowledgeArticles() {
-    const { data, error } = await supabase().from(tables.knowledge).select('*');
-    throwWithContext(error, 'Failed to fetch knowledge base articles');
+    const data = await wrapSupabaseCall(
+      () => supabase().from(tables.knowledge).select('*'),
+      { context: 'Failed to fetch knowledge base articles' }
+    );
     return data ?? [];
   },
 
   async fetchProfile(userId) {
-    const { data, error } = await supabase()
-      .from(tables.profiles)
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    ensurePresent(userId, 'User id is required', 401);
 
-    throwWithContext(error, 'Failed to fetch profile');
+    const data = await wrapSupabaseCall(
+      () =>
+        supabase()
+          .from(tables.profiles)
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle(),
+      { context: 'Failed to fetch profile' }
+    );
     return data ?? null;
   },
 
   async createProfile(payload) {
-    const { data, error } = await supabase().from(tables.profiles).insert(payload).select().single();
-    throwWithContext(error, 'Failed to create profile');
+    ensurePresent(payload?.id, 'User id is required to create profile', 401);
+
+    const data = await wrapSupabaseCall(
+      () => supabase().from(tables.profiles).insert(payload).select().single(),
+      { context: 'Failed to create profile' }
+    );
     return data;
   },
 
   async updateProfile(userId, updates) {
-    const { data, error } = await supabase()
-      .from(tables.profiles)
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
+    ensurePresent(userId, 'User id is required', 401);
 
-    throwWithContext(error, 'Failed to update profile');
+    const data = await wrapSupabaseCall(
+      () =>
+        supabase()
+          .from(tables.profiles)
+          .update(updates)
+          .eq('id', userId)
+          .select()
+          .single(),
+      { context: 'Failed to update profile', notFoundMessage: 'Profile not found' }
+    );
     return data;
   },
 
@@ -118,8 +196,12 @@ export const supabaseService = {
   },
 
   async submitDiagnosisFeedback(payload) {
-    const { error } = await supabase().from(tables.feedback).insert(payload);
-    throwWithContext(error, 'Failed to submit diagnosis feedback');
+    ensurePresent(payload?.diagnosis_id, 'Diagnosis id is required for feedback');
+
+    await wrapSupabaseCall(
+      () => supabase().from(tables.feedback).insert(payload),
+      { context: 'Failed to submit diagnosis feedback' }
+    );
   },
 
   async uploadToBucket({ bucket, path, body, contentType = 'application/octet-stream' }) {
@@ -127,15 +209,17 @@ export const supabaseService = {
       throw new Error('Storage bucket name is required to upload.');
     }
 
-    const { data, error } = await supabase()
-      .storage.from(bucket)
-      .upload(path, body, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType
-    });
-
-    throwWithContext(error, `Failed to upload to bucket ${bucket}`);
+    const data = await wrapSupabaseCall(
+      () =>
+        supabase()
+          .storage.from(bucket)
+          .upload(path, body, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType
+      }),
+      { context: `Failed to upload to bucket ${bucket}` }
+    );
     return data?.path ?? path;
   },
 
@@ -148,10 +232,10 @@ export const supabaseService = {
       return [];
     }
 
-    const { data, error } = await supabase()
-      .storage.from(bucket)
-      .createSignedUrls(paths, expiresIn);
-    throwWithContext(error, `Failed to create signed URLs for bucket ${bucket}`);
+    const data = await wrapSupabaseCall(
+      () => supabase().storage.from(bucket).createSignedUrls(paths, expiresIn),
+      { context: `Failed to create signed URLs for bucket ${bucket}` }
+    );
 
     return (data ?? []).map((item) => item.signedUrl);
   },
@@ -161,10 +245,10 @@ export const supabaseService = {
       throw new Error('Storage bucket name is required to sign URL.');
     }
 
-    const { data, error } = await supabase()
-      .storage.from(bucket)
-      .createSignedUrl(path, expiresIn);
-    throwWithContext(error, `Failed to create signed URL for bucket ${bucket}`);
+    const data = await wrapSupabaseCall(
+      () => supabase().storage.from(bucket).createSignedUrl(path, expiresIn),
+      { context: `Failed to create signed URL for bucket ${bucket}` }
+    );
 
     return data?.signedUrl ?? '';
   },
@@ -178,8 +262,10 @@ export const supabaseService = {
       return;
     }
 
-    const { error } = await supabase().storage.from(bucket).remove(paths);
-    throwWithContext(error, `Failed to remove files from bucket ${bucket}`);
+    await wrapSupabaseCall(
+      () => supabase().storage.from(bucket).remove(paths),
+      { context: `Failed to remove files from bucket ${bucket}` }
+    );
   },
 
   async invokeEdgeFunction(name, body, headers) {
@@ -187,12 +273,14 @@ export const supabaseService = {
       throw new Error('Function name is required to invoke a Supabase Edge Function.');
     }
 
-    const { data, error } = await supabase().functions.invoke(name, {
-      body,
-      headers: { 'Content-Type': 'application/json', ...(headers ?? {}) }
-    });
-
-    throwWithContext(error, `Failed to invoke edge function ${name}`);
+    const data = await wrapSupabaseCall(
+      () =>
+        supabase().functions.invoke(name, {
+          body,
+          headers: { 'Content-Type': 'application/json', ...(headers ?? {}) }
+        }),
+      { context: `Failed to invoke edge function ${name}` }
+    );
     return data;
   },
 

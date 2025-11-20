@@ -46,6 +46,9 @@ const validateDiagnosisPayload = (body, userId) => {
 export const listDiagnoses = async (req, res, next) => {
   try {
     const userId = parseUserId(req);
+    if (!userId) {
+      throw buildHttpError('Unauthorized', 401);
+    }
     const data = await supabaseService.fetchDiagnosesForUser(userId);
     res.json({ data });
   } catch (error) {
@@ -71,13 +74,20 @@ export const createDiagnosis = async (req, res, next) => {
 export const updateDiagnosisResolved = async (req, res, next) => {
   try {
     const userId = parseUserId(req);
+    if (!userId) {
+      throw buildHttpError('Unauthorized', 401);
+    }
+    const diagnosisId = toNonEmptyString(req.params?.id);
+    if (!diagnosisId) {
+      throw buildHttpError('Diagnosis id is required', 400);
+    }
     const resolved = ensureBoolean(req.body?.resolved);
 
     if (resolved === null) {
       throw buildHttpError('"resolved" flag must be a boolean', 400);
     }
 
-    await supabaseService.updateDiagnosisResolved(req.params.id, userId, resolved);
+    await supabaseService.updateDiagnosisResolved(diagnosisId, userId, resolved);
     res.json({ success: true });
   } catch (error) {
     next(error);
@@ -87,6 +97,13 @@ export const updateDiagnosisResolved = async (req, res, next) => {
 export const updateDiagnosisDetails = async (req, res, next) => {
   try {
     const userId = parseUserId(req);
+    if (!userId) {
+      throw buildHttpError('Unauthorized', 401);
+    }
+    const diagnosisId = toNonEmptyString(req.params?.id);
+    if (!diagnosisId) {
+      throw buildHttpError('Diagnosis id is required', 400);
+    }
     const updates = {};
 
     if (isNonEmptyString(req.body?.context)) {
@@ -106,7 +123,7 @@ export const updateDiagnosisDetails = async (req, res, next) => {
       throw buildHttpError('No valid fields to update', 400);
     }
 
-    await supabaseService.updateDiagnosisDetails(req.params.id, userId, updates);
+    await supabaseService.updateDiagnosisDetails(diagnosisId, userId, updates);
     res.json({ success: true });
   } catch (error) {
     next(error);
@@ -116,6 +133,13 @@ export const updateDiagnosisDetails = async (req, res, next) => {
 export const deleteDiagnosis = async (req, res, next) => {
   try {
     const userId = parseUserId(req);
+    if (!userId) {
+      throw buildHttpError('Unauthorized', 401);
+    }
+    const diagnosisId = toNonEmptyString(req.params?.id);
+    if (!diagnosisId) {
+      throw buildHttpError('Diagnosis id is required', 400);
+    }
     const rawPaths = req.body?.imagePaths ?? req.body?.paths;
     if (rawPaths && (!Array.isArray(rawPaths) || rawPaths.some((path) => typeof path !== 'string' || !path.trim()))) {
       throw buildHttpError('All image paths must be non-empty strings', 400);
@@ -123,7 +147,7 @@ export const deleteDiagnosis = async (req, res, next) => {
 
     const imagePaths = toStringArray(rawPaths);
 
-    await supabaseService.deleteDiagnosis(req.params.id, userId);
+    await supabaseService.deleteDiagnosis(diagnosisId, userId);
     if (imagePaths.length > 0) {
       await supabaseService.removeFromBucket(imagePaths, supabaseService.defaultBuckets.diagnosis);
     }
@@ -135,6 +159,10 @@ export const deleteDiagnosis = async (req, res, next) => {
 
 export const submitFeedback = async (req, res, next) => {
   try {
+    const diagnosisId = toNonEmptyString(req.params?.id);
+    if (!diagnosisId) {
+      throw buildHttpError('Diagnosis id is required', 400);
+    }
     const useful = ensureBoolean(req.body?.useful);
     if (useful === null) {
       throw buildHttpError('Feedback usefulness must be a boolean', 400);
@@ -145,7 +173,7 @@ export const submitFeedback = async (req, res, next) => {
       throw buildHttpError('Feedback comment is too long', 400);
     }
 
-    const payload = { diagnosis_id: req.params.id, useful, comment: comment || null };
+    const payload = { diagnosis_id: diagnosisId, useful, comment: comment || null };
     await supabaseService.submitDiagnosisFeedback(payload);
     res.status(201).json({ success: true });
   } catch (error) {
