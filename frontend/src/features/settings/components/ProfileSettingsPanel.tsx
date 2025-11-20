@@ -41,11 +41,13 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
     setPendingFile(null);
     setAvatarCleared(false);
     setRemovedAvatarPath(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(undefined);
-    }
-  }, [previewUrl, profile?.avatarPath, profile?.avatarUrl, profile?.firstName, profile?.lastName]);
+    setPreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+      return undefined;
+    });
+  }, [profile?.avatarPath, profile?.avatarUrl, profile?.firstName, profile?.lastName]);
 
   useEffect(() => {
     return () => {
@@ -232,7 +234,7 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
         </div>
       </div>
       <footer className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-xs uppercase tracking-wide text-brand-muted">{t('settings.profileInfoSaved')}</div>
+        <div className="text-xs uppercase tracking-wide text-brand-muted" aria-hidden />
         <div className="flex items-center gap-3">
           {status && <span className="animate-pulse text-sm text-brand-secondary">{status}</span>}
           {error && <span className="animate-pulse text-sm text-brand-danger">{error}</span>}

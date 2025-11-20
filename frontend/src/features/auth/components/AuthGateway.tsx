@@ -271,6 +271,7 @@ const AuthGateway = () => {
                             type="file"
                             accept="image/*"
                             className="hidden"
+                            title={t('auth.selectAvatar')}
                             onChange={(event) => {
                               const files = event.target.files ?? undefined;
                               signUpForm.setValue('avatar', files);

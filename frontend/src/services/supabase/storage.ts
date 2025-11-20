@@ -4,6 +4,7 @@ import { appConfig } from '@/services/config';
 
 const DIAGNOSIS_BUCKET = appConfig.supabase.storageBuckets.diagnosis ?? 'diagnosis-images';
 const PROFILE_BUCKET = appConfig.supabase.storageBuckets.profile ?? 'profile-avatars';
+const KNOWLEDGE_BUCKET = appConfig.supabase.storageBuckets.knowledge ?? DIAGNOSIS_BUCKET;
 
 const inferExtension = (file: File) => {
   const parts = file.name.split('.');
@@ -12,7 +13,19 @@ const inferExtension = (file: File) => {
   return candidate.toLowerCase();
 };
 
-export const uploadDiagnosisImages = async (files: File[]): Promise<string[]> => {
+const ensureUser = async () => {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    throw new Error(error.message);
+  }
+  const userId = data.user?.id;
+  if (!userId) {
+    throw new Error('User must be authenticated to upload media.');
+  }
+  return userId;
+};
+
+const uploadToBucket = async (files: File[], bucket: string): Promise<string[]> => {
   if (files.length === 0) {
     return [];
   }
@@ -23,7 +36,7 @@ export const uploadDiagnosisImages = async (files: File[]): Promise<string[]> =>
 
   for (const file of files) {
     const path = `${owner}/${Date.now()}-${nanoid()}.${inferExtension(file)}`;
-    const { error } = await supabase.storage.from(DIAGNOSIS_BUCKET).upload(path, file, {
+    const { error } = await supabase.storage.from(bucket).upload(path, file, {
       contentType: file.type || 'application/octet-stream',
       upsert: true,
       cacheControl: '3600'
@@ -39,23 +52,17 @@ export const uploadDiagnosisImages = async (files: File[]): Promise<string[]> =>
   return uploaded;
 };
 
-const ensureUser = async () => {
-  const { data, error } = await supabase.auth.getUser();
-  if (error) {
-    throw new Error(error.message);
-  }
-  const userId = data.user?.id;
-  if (!userId) {
-    throw new Error('User must be authenticated to upload media.');
-  }
-  return userId;
-};
+export const uploadDiagnosisImages = async (files: File[], bucket = DIAGNOSIS_BUCKET): Promise<string[]> =>
+  uploadToBucket(files, bucket);
 
-export const createSignedDiagnosisUrls = async (paths: string[], expiresInSeconds = 60 * 10) => {
+export const uploadKnowledgeAttachments = async (files: File[]): Promise<string[]> =>
+  uploadToBucket(files, KNOWLEDGE_BUCKET);
+
+export const createSignedDiagnosisUrls = async (paths: string[], expiresInSeconds = 60 * 10, bucket = DIAGNOSIS_BUCKET) => {
   if (paths.length === 0) return [] as string[];
 
   const { data, error } = await supabase.storage
-    .from(DIAGNOSIS_BUCKET)
+    .from(bucket)
     .createSignedUrls(paths, expiresInSeconds);
 
   if (error) {
@@ -64,6 +71,9 @@ export const createSignedDiagnosisUrls = async (paths: string[], expiresInSecond
 
   return (data ?? []).map((item: { signedUrl: string }) => item.signedUrl);
 };
+
+export const createSignedKnowledgeUrls = async (paths: string[], expiresInSeconds = 60 * 10) =>
+  createSignedDiagnosisUrls(paths, expiresInSeconds, KNOWLEDGE_BUCKET);
 
 export const removeDiagnosisImages = async (paths: string[]) => {
   if (paths.length === 0) {

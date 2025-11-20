@@ -104,7 +104,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
               {t('diagnosis.uploadTitle')}
             </span>
           </div>
-          <div className="rounded-3xl border border-brand-secondary/25 bg-white/85 p-4 shadow-inner">
+          <div className="rounded-3xl border border-brand-secondary/25 bg-white/85 p-4 shadow-inner dark:border-brand-secondary/40 dark:bg-brand-surface/40">
             <div className="overflow-x-auto">
               <div className="min-w-[420px] space-y-5 px-1">
                 <div className="flex items-center gap-3 sm:gap-4">
@@ -124,7 +124,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
                             'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition',
                             isCompleted || isCurrent
                               ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
-                              : 'border-brand-muted/40 bg-white text-brand-text'
+                              : 'border-brand-muted/40 bg-white text-brand-text dark:border-subtle/60 dark:bg-brand-surface/70 dark:text-brand-muted'
                           )}
                         >
                           {index + 1}
@@ -133,7 +133,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
                           <div
                             className={clsx(
                               'ml-3 h-1 flex-1 rounded-full sm:ml-4',
-                              isCompleted ? 'bg-brand-primary' : 'bg-brand-muted/30'
+                              isCompleted ? 'bg-brand-primary' : 'bg-brand-muted/30 dark:bg-brand-muted/40'
                             )}
                           />
                         )}
@@ -153,7 +153,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
                         <p
                           className={clsx(
                             'font-semibold',
-                            isCurrent ? 'text-brand-primary' : 'text-brand-text'
+                            isCurrent ? 'text-brand-primary' : 'text-brand-text dark:text-brand-muted'
                           )}
                         >
                           {label}
@@ -182,7 +182,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
             </div>
           </div>
         </header>
-        <div className="w-full rounded-3xl border border-dashed border-brand-secondary/40 bg-white/70 p-3">
+        <div className="w-full rounded-3xl border border-dashed border-brand-secondary/40 bg-white/70 p-3 dark:border-brand-secondary/50 dark:bg-brand-surface/30">
           <UploadZone files={files} onChange={setFiles} />
         </div>
         <form className="space-y-6">
@@ -191,7 +191,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
               <label className="space-y-3">
                 <span className="text-sm font-medium text-brand-text">{t('diagnosis.cropLabel')}</span>
                 <select
-                  className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60"
+                  className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60 dark:border-brand-secondary/50 dark:bg-brand-surface/60 dark:text-brand-text"
                   {...form.register('crop')}
                 >
                   <option value="">--</option>
@@ -209,7 +209,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
               <label className="space-y-3">
                 <span className="text-sm font-medium text-brand-text">{t('diagnosis.stageLabel')}</span>
                 <select
-                  className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60"
+                  className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60 dark:border-brand-secondary/50 dark:bg-brand-surface/60 dark:text-brand-text"
                   {...form.register('stage')}
                 >
                   <option value="">--</option>
@@ -229,7 +229,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
             <label className="block space-y-3">
               <span className="text-sm font-medium text-brand-text">{t('diagnosis.symptomsLabel')}</span>
               <textarea
-                className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60"
+                className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60 dark:border-brand-secondary/50 dark:bg-brand-surface/60 dark:text-brand-text"
                 rows={3}
                 {...form.register('symptomsText')}
                 placeholder={t('diagnosis.symptomsPlaceholder', 'Saisissez des symptômes, séparés par des virgules…') ?? ''}
@@ -243,7 +243,7 @@ const GuidedScanForm = ({ onResult }: GuidedProps) => {
             <label className="block space-y-3">
               <span className="text-sm font-medium text-brand-text">{t('diagnosis.contextLabel')}</span>
               <textarea
-                className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60"
+                className="focus-ring w-full rounded-3xl border border-brand-secondary/30 bg-white/80 p-4 text-sm shadow-inner transition hover:border-brand-secondary/60 dark:border-brand-secondary/50 dark:bg-brand-surface/60 dark:text-brand-text"
                 rows={4}
                 {...form.register('context')}
                 placeholder={t('diagnosis.contextPlaceholder') ?? ''}

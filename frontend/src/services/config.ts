@@ -16,7 +16,8 @@ export const appConfig = {
     storageBuckets: {
       diagnosis: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_DIAGNOSIS', 'diagnosis-images'),
       reports: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_REPORTS', 'diagnosis-reports'),
-      profile: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_PROFILE', 'profile-avatars')
+      profile: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_PROFILE', 'profile-avatars'),
+      knowledge: getEnvValue('VITE_SUPABASE_STORAGE_BUCKET_KNOWLEDGE')
     },
     functions: {
       // Utilise d'abord les variables d'env. Par défaut, aligne sur les noms réels fournis

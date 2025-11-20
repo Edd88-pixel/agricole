@@ -20,7 +20,7 @@ const DashboardHome = ({ userName, greetingName, recent, isLoading }: Props) => 
   return (
     <div className="space-y-10">
       <section className="grid gap-6 animate-[fade-in-up_0.6s_ease-out] lg:grid-cols-3">
-        <Card className="relative overflow-hidden lg:col-span-2 space-y-6 bg-gradient-to-br from-brand-surface/95 via-white/90 to-brand-surface/90">
+        <Card className="relative overflow-hidden lg:col-span-2 space-y-6 bg-gradient-to-br from-brand-surface/95 via-white/90 to-brand-surface/90 dark:from-[#0f211b] dark:via-[#0c1a15] dark:to-[#0c221b]">
           <span className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-brand-secondary/10 blur-3xl" aria-hidden />
           <div className="space-y-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-secondary/20 bg-brand-background/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-secondary shadow-sm">
@@ -32,34 +32,34 @@ const DashboardHome = ({ userName, greetingName, recent, isLoading }: Props) => 
             <p className="max-w-2xl text-sm text-brand-muted">{t('dashboard.createDiagnosis')}</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="relative overflow-hidden border border-brand-primary/30 bg-white/80 p-6 shadow-inner dark:bg-brand-surface">
-              <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent" aria-hidden />
+            <Card className="relative overflow-hidden border border-brand-primary/30 bg-white/80 p-6 shadow-inner dark:border-brand-primary/30 dark:bg-brand-surface/90">
+              <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent dark:via-brand-primary/20" aria-hidden />
               <div className="flex flex-col gap-5">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 text-lg font-semibold text-brand-primary">
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-brand-primary/10 text-xl" aria-hidden>
+                  <div className="flex items-center gap-3 text-lg font-semibold text-brand-primary dark:text-brand-bright">
+                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-brand-primary/10 text-xl dark:bg-brand-primary/20" aria-hidden>
                       ⚡
                     </span>
                     <span>{t('dashboard.quickScan')}</span>
                   </div>
-                  <p className="text-sm text-brand-muted">{t('dashboard.quickScanDescription')}</p>
+                  <p className="text-sm text-brand-muted dark:text-brand-muted/90">{t('dashboard.quickScanDescription')}</p>
                 </div>
                 <Button asChild size="lg" to="/diagnosis/quick">
                   <span>{t('dashboard.quickScan')}</span>
                 </Button>
               </div>
             </Card>
-            <Card className="relative overflow-hidden border border-brand-secondary/30 bg-white/80 p-6 shadow-inner dark:bg-brand-surface">
-              <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-brand-secondary/40 to-transparent" aria-hidden />
+            <Card className="relative overflow-hidden border border-brand-secondary/30 bg-white/80 p-6 shadow-inner dark:border-brand-secondary/30 dark:bg-brand-surface/90">
+              <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-brand-secondary/40 to-transparent dark:via-brand-secondary/20" aria-hidden />
               <div className="flex flex-col gap-5">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 text-lg font-semibold text-brand-secondary">
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-brand-secondary/10 text-xl" aria-hidden>
+                  <div className="flex items-center gap-3 text-lg font-semibold text-brand-secondary dark:text-brand-bright">
+                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-brand-secondary/10 text-xl dark:bg-brand-secondary/20" aria-hidden>
                       🧭
                     </span>
                     <span>{t('dashboard.guidedScan')}</span>
                   </div>
-                  <p className="text-sm text-brand-muted">{t('dashboard.guidedScanDescription')}</p>
+                  <p className="text-sm text-brand-muted dark:text-brand-muted/90">{t('dashboard.guidedScanDescription')}</p>
                 </div>
                 <Button variant="secondary" asChild size="lg" to="/diagnosis/guided">
                   <span>{t('dashboard.guidedScan')}</span>
