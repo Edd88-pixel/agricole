@@ -1,5 +1,12 @@
 import { randomUUID } from 'crypto';
 import { supabaseService } from '../services/supabaseService.js';
+import {
+  buildHttpError,
+  clampArray,
+  isNonEmptyString,
+  toNonEmptyString,
+  toStringArray
+} from '../utils/validation.js';
 
 const inferExtension = (filename) => {
   const parts = filename.split('.');
@@ -25,10 +32,22 @@ const uploadFilesToBucket = async (files, bucket, owner) => {
 
 export const runDiagnosisInference = async (req, res, next) => {
   try {
-    const { crop, stage, symptoms, context, model } = req.body || {};
+    const { context, model } = req.body || {};
+    const crop = toNonEmptyString(req.body?.crop);
+    const stage = toNonEmptyString(req.body?.stage);
+    const symptoms = toStringArray(req.body?.symptoms);
+
+    if (!crop || !stage) {
+      throw buildHttpError('Crop and stage are required', 400);
+    }
+
     const owner = req.user?.id;
-    const files = req.files || [];
-    const symptomsArray = Array.isArray(symptoms) ? symptoms : typeof symptoms === 'string' ? symptoms.split(',') : [];
+    const files = clampArray(req.files || [], 5);
+    const symptomsArray = clampArray(symptoms, 10);
+
+    if (files.length === 0 && symptomsArray.length === 0 && !context) {
+      throw buildHttpError('At least one symptom, image or context is required', 400);
+    }
 
     const uploadedPaths = await uploadFilesToBucket(files, supabaseService.defaultBuckets.diagnosis, owner);
     const signedUrls = await supabaseService.createSignedUrls(uploadedPaths, {
@@ -64,7 +83,11 @@ export const runDiagnosisInference = async (req, res, next) => {
 
 export const runKnowledgeChat = async (req, res, next) => {
   try {
-    const { prompt } = req.body || {};
+    const prompt = toNonEmptyString(req.body?.prompt);
+    if (!prompt) {
+      throw buildHttpError('Prompt is required', 400);
+    }
+
     const history = (() => {
       if (Array.isArray(req.body?.history)) return req.body.history;
       if (typeof req.body?.history === 'string') {
@@ -75,9 +98,12 @@ export const runKnowledgeChat = async (req, res, next) => {
         }
       }
       return [];
-    })();
+    })()
+      .filter((item) => item && isNonEmptyString(item.role) && isNonEmptyString(item.content))
+      .map((item) => ({ role: item.role.trim(), content: item.content.trim() }));
+    const boundedHistory = clampArray(history, 20);
     const owner = req.user?.id;
-    const files = req.files || [];
+    const files = clampArray(req.files || [], 5);
     const uploadedPaths = await uploadFilesToBucket(
       files,
       supabaseService.defaultBuckets.knowledge,
@@ -90,13 +116,13 @@ export const runKnowledgeChat = async (req, res, next) => {
 
     const payload = {
       prompt,
-      history,
+      history: boundedHistory,
       imagePaths: uploadedPaths,
       signedUrls,
       bucket: supabaseService.defaultBuckets.knowledge,
       query: prompt,
       message: prompt,
-      messages: history,
+      messages: boundedHistory,
       images: accessibleImages,
       signedImagePaths: signedUrls
     };

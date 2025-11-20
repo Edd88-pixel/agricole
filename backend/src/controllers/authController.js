@@ -1,4 +1,7 @@
 import { authService } from '../services/authService.js';
+import { buildHttpError, toNonEmptyString } from '../utils/validation.js';
+
+const isEmailValid = (email) => /.+@.+\..+/.test(email);
 
 const mapSessionResponse = (data) => ({
   user: data.user,
@@ -9,9 +12,10 @@ const mapSessionResponse = (data) => ({
 
 export const signIn = async (req, res, next) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required.' });
+    const email = toNonEmptyString(req.body?.email);
+    const password = toNonEmptyString(req.body?.password);
+    if (!email || !password || !isEmailValid(email)) {
+      throw buildHttpError('Valid email and password are required.', 400);
     }
 
     const data = await authService.signIn(email, password);
@@ -23,9 +27,12 @@ export const signIn = async (req, res, next) => {
 
 export const signUp = async (req, res, next) => {
   try {
-    const { email, password, firstName, lastName } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required.' });
+    const email = toNonEmptyString(req.body?.email);
+    const password = toNonEmptyString(req.body?.password);
+    const firstName = toNonEmptyString(req.body?.firstName);
+    const lastName = toNonEmptyString(req.body?.lastName);
+    if (!email || !password || !isEmailValid(email)) {
+      throw buildHttpError('Valid email and password are required.', 400);
     }
 
     const data = await authService.signUp({ email, password, firstName, lastName });

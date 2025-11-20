@@ -1,5 +1,11 @@
 import { randomUUID } from 'crypto';
 import { supabaseService } from '../services/supabaseService.js';
+import {
+  buildHttpError,
+  isNonEmptyString,
+  parsePositiveInteger,
+  toStringArray
+} from '../utils/validation.js';
 
 const inferExtension = (filename) => {
   const parts = filename.split('.');
@@ -26,6 +32,9 @@ const uploadFilesToBucket = async (files, bucket, owner) => {
 export const uploadDiagnosisImages = async (req, res, next) => {
   try {
     const owner = req.user?.id;
+    if (!req.files || req.files.length === 0) {
+      throw buildHttpError('At least one image is required', 400);
+    }
     const paths = await uploadFilesToBucket(
       req.files || [],
       supabaseService.defaultBuckets.diagnosis,
@@ -40,6 +49,9 @@ export const uploadDiagnosisImages = async (req, res, next) => {
 export const uploadKnowledgeAttachments = async (req, res, next) => {
   try {
     const owner = req.user?.id;
+    if (!req.files || req.files.length === 0) {
+      throw buildHttpError('At least one attachment is required', 400);
+    }
     const paths = await uploadFilesToBucket(
       req.files || [],
       supabaseService.defaultBuckets.knowledge,
@@ -67,7 +79,12 @@ export const uploadProfileAvatar = async (req, res, next) => {
 
 export const createDiagnosisSignedUrls = async (req, res, next) => {
   try {
-    const { paths = [], expiresIn } = req.body || {};
+    const paths = toStringArray(req.body?.paths);
+    if (paths.length === 0) {
+      throw buildHttpError('No file paths provided to sign', 400);
+    }
+
+    const expiresIn = parsePositiveInteger(req.body?.expiresIn, 600);
     const signedUrls = await supabaseService.createSignedUrls(paths, {
       bucket: supabaseService.defaultBuckets.diagnosis,
       expiresIn
@@ -80,7 +97,11 @@ export const createDiagnosisSignedUrls = async (req, res, next) => {
 
 export const createKnowledgeSignedUrls = async (req, res, next) => {
   try {
-    const { paths = [], expiresIn } = req.body || {};
+    const paths = toStringArray(req.body?.paths);
+    if (paths.length === 0) {
+      throw buildHttpError('No file paths provided to sign', 400);
+    }
+    const expiresIn = parsePositiveInteger(req.body?.expiresIn, 600);
     const signedUrls = await supabaseService.createSignedUrls(paths, {
       bucket: supabaseService.defaultBuckets.knowledge,
       expiresIn
@@ -93,7 +114,13 @@ export const createKnowledgeSignedUrls = async (req, res, next) => {
 
 export const createProfileSignedUrl = async (req, res, next) => {
   try {
-    const { path, expiresIn } = req.body || {};
+    const rawPath = req.body?.path;
+    if (!isNonEmptyString(rawPath)) {
+      throw buildHttpError('Profile image path is required', 400);
+    }
+    const path = toStringArray([rawPath])[0];
+
+    const expiresIn = parsePositiveInteger(req.body?.expiresIn, 600);
     const signedUrl = await supabaseService.createSignedUrl(path, {
       bucket: supabaseService.defaultBuckets.profile,
       expiresIn
@@ -106,7 +133,10 @@ export const createProfileSignedUrl = async (req, res, next) => {
 
 export const removeDiagnosisImages = async (req, res, next) => {
   try {
-    const { paths = [] } = req.body || {};
+    const paths = toStringArray(req.body?.paths);
+    if (paths.length === 0) {
+      throw buildHttpError('No file paths provided to remove', 400);
+    }
     await supabaseService.removeFromBucket(paths, supabaseService.defaultBuckets.diagnosis);
     res.json({ success: true });
   } catch (error) {
@@ -116,7 +146,10 @@ export const removeDiagnosisImages = async (req, res, next) => {
 
 export const removeProfileAvatar = async (req, res, next) => {
   try {
-    const { path } = req.body || {};
+    const path = toStringArray([req.body?.path])[0];
+    if (req.body?.path && !path) {
+      throw buildHttpError('Profile image path is invalid', 400);
+    }
     if (path) {
       await supabaseService.removeFromBucket([path], supabaseService.defaultBuckets.profile);
     }
