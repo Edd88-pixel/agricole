@@ -17,9 +17,8 @@ type ChatMessage = {
 };
 
 type UploadedAttachment = {
-  name: string;
-  path: string;
-  signedUrl?: string;
+  id: string;
+  file: File;
 };
 
 const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
@@ -29,7 +28,6 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
     { role: 'assistant', content: t('kb.welcome', 'Bonjour, comment puis-je vous aider aujourd’hui ?') }
   ]);
   const [pendingUploads, setPendingUploads] = useState<UploadedAttachment[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiLinks, setAiLinks] = useState<{ title?: string; url: string }[]>([]);
@@ -51,33 +49,18 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
-    setIsUploading(true);
     setError(null);
-    try {
-      const { uploadKnowledgeAttachments, createSignedKnowledgeUrls } = await import('@/services/supabase/storage');
-      const paths = await uploadKnowledgeAttachments(toUpload);
-      const signedUrls = await createSignedKnowledgeUrls(paths);
-      setPendingUploads((prev) => [
-        ...prev,
-        ...paths.map((path, index) => ({
-          name: toUpload[index]?.name ?? `fichier-${index + 1}`,
-          path,
-          signedUrl: signedUrls[index]
-        }))
-      ]);
-    } catch (uploadError) {
-      console.error('Knowledge attachment upload failed', uploadError);
-      setError(t('kb.error', 'Le service IA est momentanément indisponible.'));
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    setPendingUploads((prev) => [
+      ...prev,
+      ...toUpload.map((file, index) => ({ id: `${file.name}-${file.lastModified}-${index}-${Date.now()}`, file }))
+    ]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   const handleSend = async () => {
-    if (isSending || isUploading) return;
+    if (isSending) return;
     const trimmed = input.trim();
     if (!trimmed && pendingUploads.length === 0) {
       return;
@@ -92,8 +75,7 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
       const response = await sendKnowledgeMessage({
         prompt: trimmed,
         history,
-        files: [],
-        uploaded: pendingUploads
+        files: pendingUploads.map((item) => item.file)
       });
       const assistantReply: ChatMessage = { role: 'assistant', content: response.message };
       setMessages((previous) => [...previous, assistantReply]);
@@ -142,16 +124,16 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
             <div className="flex flex-wrap gap-2">
               {pendingUploads.map((file) => (
                 <span
-                  key={file.path}
+                  key={file.id}
                   className="group flex items-center gap-2 rounded-full border border-subtle/60 bg-brand-surface/90 px-3 py-1 text-xs text-brand-text shadow-sm"
                 >
-                  <span className="truncate max-w-[160px]" title={file.name}>
-                    {file.name}
+                  <span className="truncate max-w-[160px]" title={file.file.name}>
+                    {file.file.name}
                   </span>
                   <button
                     type="button"
                     className="rounded-full bg-brand-danger/10 px-2 py-0.5 text-brand-danger transition hover:bg-brand-danger/20"
-                    onClick={() => setPendingUploads((prev) => prev.filter((item) => item.path !== file.path))}
+                    onClick={() => setPendingUploads((prev) => prev.filter((item) => item.id !== file.id))}
                   >
                     ×
                   </button>
@@ -188,7 +170,7 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
                 onChange={(event) => handleFileSelection(event.target.files)}
               />
             </div>
-            <Button onClick={handleSend} isLoading={isSending || isUploading} disabled={isSending || isUploading}>
+            <Button onClick={handleSend} isLoading={isSending} disabled={isSending}>
               {t('kb.send', 'Envoyer')}
             </Button>
           </div>

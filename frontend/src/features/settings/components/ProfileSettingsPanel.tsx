@@ -4,7 +4,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Skeleton from '@/components/ui/Skeleton';
 import type { ProfileUpdate, UserProfile } from '@/features/profile/types/profile';
-import { uploadProfileAvatar, removeProfileAvatar, createSignedProfileUrl } from '@/services/supabase/storage';
+import { uploadProfileAvatar, removeProfileAvatar, createSignedProfileUrl } from '@/services/api/storage';
 
 type Props = {
   profile: UserProfile | null;

@@ -7,13 +7,13 @@ import Button from '@/components/ui/Button';
 import LanguageSelector from '@/components/ui/LanguageSelector';
 import ThemeSelector from '@/components/ui/ThemeSelector';
 import { useTheme } from '@/app/providers/ThemeProvider';
-import { signIn, signUp } from '@/services/supabase/auth';
+import { signIn, signUp } from '@/services/api/auth';
 import { supportedLanguages } from '@/app/i18n';
 import Card from '@/components/ui/Card';
 import AuthHero from './AuthHero';
-import { createProfile, fetchProfile, updateProfile } from '@/services/supabase/profile';
+import { createProfile, fetchProfile, updateProfile } from '@/services/api/profile';
 import type { SupportedLocale } from '@/features/profile/types/profile';
-import { uploadProfileAvatar } from '@/services/supabase/storage';
+import { uploadProfileAvatar } from '@/services/api/storage';
 
 const signInSchema = z.object({
   email: z.string().email(),
@@ -76,9 +76,10 @@ const AuthGateway = () => {
   const onSubmitSignIn = signInForm.handleSubmit(async (values) => {
     setError(null);
     setSignInLoading(true);
-    const { error: authError } = await signIn(values.email, values.password);
-    if (authError) {
-      setError(authError.message);
+    try {
+      await signIn(values.email, values.password);
+    } catch (authError) {
+      setError((authError as Error).message);
     }
     setSignInLoading(false);
   });
@@ -89,27 +90,20 @@ const AuthGateway = () => {
     const avatarFiles = values.avatar as FileList | undefined;
     const avatarFile = avatarFiles && avatarFiles.length > 0 ? avatarFiles[0] : null;
 
-    const { error: authError } = await signUp({
-      email: values.email,
-      password: values.password,
-      firstName: values.firstName,
-      lastName: values.lastName
-    });
-
-    if (authError) {
-      setError(authError.message);
+    let user = null;
+    try {
+      const result = await signUp({
+        email: values.email,
+        password: values.password,
+        firstName: values.firstName,
+        lastName: values.lastName
+      });
+      user = result.user;
+    } catch (authError) {
+      setError((authError as Error).message);
       setSignUpStatus('idle');
       return;
     }
-
-    const signInResult = await signIn(values.email, values.password);
-    if (signInResult.error) {
-      setError(signInResult.error.message);
-      setSignUpStatus('idle');
-      return;
-    }
-
-    const user = signInResult.data.user;
     if (user) {
       try {
         const locale = (i18n.language.slice(0, 2) as SupportedLocale) === 'en' ? 'en' : 'fr';
@@ -118,10 +112,9 @@ const AuthGateway = () => {
           avatarPath = await uploadProfileAvatar(avatarFile);
         }
         const displayName = `${values.firstName} ${values.lastName}`.trim() || values.email;
-        const existing = await fetchProfile(user.id);
+        const existing = await fetchProfile();
         if (!existing) {
           await createProfile({
-            id: user.id,
             email: values.email,
             displayName,
             firstName: values.firstName,
@@ -132,7 +125,7 @@ const AuthGateway = () => {
             crops: []
           });
         } else {
-          await updateProfile(user.id, {
+          await updateProfile({
             firstName: values.firstName,
             lastName: values.lastName,
             displayName,

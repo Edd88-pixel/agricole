@@ -6,8 +6,8 @@ import Checklist from '@/components/ui/Checklist';
 import Button from '@/components/ui/Button';
 import type { DiagnosisResult } from '../types/diagnosis';
 import { useDiagnosisReport } from '../hooks/useDiagnosisReport';
-import { submitDiagnosisFeedback } from '@/services/supabase/feedback';
-import { createSignedDiagnosisUrls } from '@/services/supabase/storage';
+import { submitDiagnosisFeedback } from '@/services/api/feedback';
+import { createSignedDiagnosisUrls } from '@/services/api/storage';
 
 const ResultPanel = ({ result }: { result: DiagnosisResult }) => {
   const { t, i18n } = useTranslation();

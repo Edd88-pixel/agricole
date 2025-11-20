@@ -1,41 +1,21 @@
 import { describe, expect, it, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { runInference } from './inference';
-import { invokeEdgeFunction } from '@/services/supabase/functions';
-import { createSignedDiagnosisUrls, uploadDiagnosisImages } from '@/services/supabase/storage';
+import { invokeDiagnosisInference } from '@/services/api/functions';
 import { appConfig } from '@/services/config';
 
-vi.mock('@/services/supabase/functions');
-vi.mock('@/services/supabase/storage');
+vi.mock('@/services/api/functions');
 
 const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
 
-const mockInvoke = invokeEdgeFunction as unknown as Mock;
-const mockUpload = uploadDiagnosisImages as unknown as Mock;
-const mockSignUrls = createSignedDiagnosisUrls as unknown as Mock;
+const mockInvoke = invokeDiagnosisInference as unknown as Mock;
 
 describe('runInference', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockUpload.mockResolvedValue(['diagnosis-images/user/file.jpg']);
-    mockSignUrls.mockResolvedValue(['https://example.com/image.jpg']);
-
-    class FileReaderMock {
-      public result: string | ArrayBuffer | null = null;
-      public onload: null | (() => void) = null;
-      public onerror: null | (() => void) = null;
-      readAsDataURL() {
-        this.result = 'data:image/jpeg;base64,ZmFrZQ==' as const;
-        if (this.onload) {
-          this.onload();
-        }
-      }
-    }
-
-    vi.stubGlobal('FileReader', FileReaderMock);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.clearAllMocks();
   });
 
   it('returns edge function response when available', async () => {
@@ -74,20 +54,20 @@ describe('runInference', () => {
       files: [mockFile]
     });
 
-    expect(mockUpload).toHaveBeenCalled();
     expect(mockInvoke).toHaveBeenCalledWith(
-      appConfig.supabase.functions.diagnosisInfer,
       expect.objectContaining({
-        body: expect.objectContaining({
-          model: appConfig.gemini.model
-        })
+        crop: 'Maïs',
+        stage: 'Végétatif',
+        context: 'Observation',
+        symptoms: ['Taches'],
+        model: appConfig.gemini.model
       })
     );
     expect(result.id).toBe('diag-1');
     expect(result.primary.label).toBe('Anthracnose');
     expect(result.alternatives).toHaveLength(1);
     expect(result.images).toContain('https://cdn.example/report.jpg');
-    expect(result.imagePaths).toEqual(['diagnosis-images/user/file.jpg']);
+    expect(result.imagePaths).toEqual(['https://cdn.example/report.jpg']);
   });
 
   it('throws when the edge function fails', async () => {
@@ -127,12 +107,12 @@ describe('runInference', () => {
     expect(result.crop).toBe('Blé');
     expect(result.primary.label).toBe('Healthy crop');
     expect(result.status).toBe('healthy');
-    expect(result.images[0]).toBe('https://example.com/image.jpg');
-    expect(result.imagePaths).toEqual(['diagnosis-images/user/file.jpg']);
+    expect(result.images).toEqual([]);
+    expect(result.imagePaths).toEqual([]);
   });
 
-  it('throws if images cannot be uploaded', async () => {
-    mockUpload.mockResolvedValue([]);
+  it('throws if inference response is empty', async () => {
+    mockInvoke.mockResolvedValue({});
 
     await expect(
       runInference({
@@ -142,7 +122,7 @@ describe('runInference', () => {
         context: 'Cas test',
         files: [mockFile]
       })
-    ).rejects.toThrow('No images were uploaded');
+    ).rejects.toThrow('Incomplete response from edge inference.');
   });
 
   it('throws if called without images', async () => {
@@ -154,6 +134,6 @@ describe('runInference', () => {
         context: 'Cas test',
         files: []
       })
-    ).rejects.toThrow('At least one image is required');
+    ).rejects.toThrow('At least one image is required for inference.');
   });
 });

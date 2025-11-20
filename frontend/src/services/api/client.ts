@@ -1,4 +1,5 @@
 import { appConfig } from '@/services/config';
+import { getAccessToken } from '@/services/authTokens';
 
 export type ApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -48,14 +49,19 @@ export const apiClient = {
   async request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
     const { method = 'GET', query, body, headers, ...rest } = options;
     const url = buildUrl(path, query);
+
+    const authToken = getAccessToken();
+    const authHeaders = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     const response = await fetch(url, {
       method,
       headers: {
         Accept: 'application/json',
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
+        ...(body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+        ...authHeaders,
         ...headers
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
       ...rest
     });
 

@@ -1,6 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, type Mock } from 'vitest';
-import { supabase } from '@/services/supabase/client';
 import type { DiagnosisResult } from '@/features/diagnosis/types/diagnosis';
 import type { KnowledgeArticle } from '@/features/kb/types/article';
 import {
@@ -9,19 +8,12 @@ import {
   updateDiagnosisResolved,
   deleteDiagnosis,
   updateDiagnosisDetails
-} from '@/services/supabase/diagnosis';
-import { fetchKnowledgeArticles } from '@/services/supabase/knowledge';
+} from '@/services/api/diagnosis';
+import { fetchKnowledgeArticles } from '@/services/api/knowledge';
 import { useSupabaseData } from './useSupabaseData';
 
-vi.mock('@/services/supabase/diagnosis');
-vi.mock('@/services/supabase/knowledge');
-vi.mock('@/services/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } })
-    }
-  }
-}));
+vi.mock('@/services/api/diagnosis');
+vi.mock('@/services/api/knowledge');
 
 const sampleDiagnosis: DiagnosisResult = {
   id: '1',
@@ -57,7 +49,6 @@ const sampleArticle: KnowledgeArticle = {
 describe('useSupabaseData', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    (supabase.auth.getSession as Mock).mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } });
     (fetchDiagnoses as unknown as Mock).mockResolvedValue([]);
     (fetchKnowledgeArticles as unknown as Mock).mockResolvedValue([sampleArticle]);
     (insertDiagnosis as unknown as Mock).mockResolvedValue(undefined);

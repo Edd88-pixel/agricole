@@ -2,15 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DiagnosisResult } from '@/features/diagnosis/types/diagnosis';
 import type { HistoryEntry } from '@/features/history/types/history';
 import type { KnowledgeArticle } from '@/features/kb/types/article';
-import {
-  fetchDiagnoses,
-  insertDiagnosis,
-  updateDiagnosisResolved,
-  deleteDiagnosis,
-  updateDiagnosisDetails
-} from '@/services/supabase/diagnosis';
-import { fetchKnowledgeArticles } from '@/services/supabase/knowledge';
-import { supabase } from '@/services/supabase/client';
+import { fetchDiagnoses, insertDiagnosis, updateDiagnosisResolved, deleteDiagnosis, updateDiagnosisDetails } from '@/services/api/diagnosis';
+import { fetchKnowledgeArticles } from '@/services/api/knowledge';
 
 const MAX_HISTORY = 20;
 
@@ -29,16 +22,11 @@ export const useSupabaseData = () => {
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const sessionResponse = await supabase.auth.getSession();
-      const session = sessionResponse?.data?.session;
-      if (!session) {
-        setHistory([]);
-        return;
-      }
       const records = await fetchDiagnoses();
       setHistory(records.slice(0, MAX_HISTORY));
     } catch (error) {
-      console.error('Failed to load diagnoses from Supabase', error);
+      console.error('Failed to load diagnoses from backend', error);
+      setHistory([]);
     } finally {
       setHistoryLoading(false);
     }
@@ -50,7 +38,7 @@ export const useSupabaseData = () => {
       const records = await fetchKnowledgeArticles();
       setArticles(records);
     } catch (error) {
-      console.error('Failed to load knowledge base from Supabase', error);
+      console.error('Failed to load knowledge base from backend', error);
     } finally {
       setArticlesLoading(false);
     }
