@@ -9,6 +9,8 @@ import {
   updateDiagnosisResolved
 } from '../../src/controllers/diagnosisController.js';
 import { supabaseService } from '../../src/services/supabaseService.js';
+import { errorHandler, notFoundHandler } from '../../src/middlewares/errorHandler.js';
+import { buildHttpError } from '../../src/utils/validation.js';
 
 vi.mock('../../src/services/supabaseService.js', () => ({
   supabaseService: {
@@ -37,6 +39,9 @@ const buildApp = () => {
   app.patch('/diagnoses/:id', attachUser, updateDiagnosisDetails);
   app.delete('/diagnoses/:id', attachUser, deleteDiagnosis);
   app.post('/diagnoses/:id/feedback', attachUser, submitFeedback);
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 };
@@ -113,5 +118,25 @@ describe('diagnosisController validation', () => {
 
     expect(response.status).toBe(400);
     expect(supabaseService.submitDiagnosisFeedback).not.toHaveBeenCalled();
+  });
+
+  it('rejects empty diagnosis ids on updates', async () => {
+    const response = await request(app)
+      .patch('/diagnoses/%20/resolved')
+      .send({ resolved: true });
+
+    expect(response.status).toBe(400);
+    expect(supabaseService.updateDiagnosisResolved).not.toHaveBeenCalled();
+  });
+
+  it('propagates not found errors from the data layer', async () => {
+    supabaseService.updateDiagnosisResolved.mockRejectedValueOnce(buildHttpError('Diagnosis not found', 404));
+
+    const response = await request(app)
+      .patch('/diagnoses/missing-id/resolved')
+      .send({ resolved: true });
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBe('Diagnosis not found');
   });
 });
