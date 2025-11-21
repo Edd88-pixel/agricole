@@ -18,16 +18,33 @@ const buildCors = (req: Request): HeadersInit => {
   } as const;
 };
 
-const APP_URL = Deno.env.get('APP_URL');
-const APP_SERVICE_KEY = Deno.env.get('APP_SERVICE_KEY');
-const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY');
-const DIAGNOSIS_BUCKET = Deno.env.get('STORAGE_BUCKET_DIAGNOSIS') ?? 'diagnosis-images';
+const pickEnv = (...keys: string[]) => {
+  for (const key of keys) {
+    const value = Deno.env.get(key);
+    if (value) return value;
+  }
+  return undefined;
+};
 
-if (!APP_URL || !APP_SERVICE_KEY) throw new Error('Missing Supabase configuration');
-const supabase = createClient(APP_URL, APP_SERVICE_KEY, { auth: { persistSession: false } });
+const SUPABASE_URL = pickEnv('SUPABASE_URL', 'APP_URL');
+const SUPABASE_SERVICE_KEY = pickEnv(
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'APP_SERVICE_KEY',
+  'SUPABASE_ANON_KEY',
+  'VITE_SUPABASE_ANON_KEY'
+);
+const GEMINI_KEY = pickEnv('GEMINI_API_KEY', 'SUPABASE_GEMINI_API_KEY');
+const DIAGNOSIS_BUCKET =
+  pickEnv('SUPABASE_STORAGE_BUCKET_DIAGNOSIS', 'VITE_SUPABASE_STORAGE_BUCKET_DIAGNOSIS', 'STORAGE_BUCKET_DIAGNOSIS') ??
+  'diagnosis-images';
+
+const supabase =
+  SUPABASE_URL && SUPABASE_SERVICE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
+    : null;
 
 const signImageUrls = async (paths: string[]) => {
-  if (paths.length === 0) return [] as string[];
+  if (paths.length === 0 || !supabase) return [] as string[];
   const { data, error } = await supabase.storage.from(DIAGNOSIS_BUCKET).createSignedUrls(paths, 60 * 10);
   if (error) {
     console.error('Unable to sign image URLs', error);

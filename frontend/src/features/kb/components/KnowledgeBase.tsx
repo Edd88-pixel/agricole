@@ -16,23 +16,17 @@ type ChatMessage = {
   content: string;
 };
 
-type UploadedAttachment = {
-  id: string;
-  file: File;
-};
-
 const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
   const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: t('kb.welcome', 'Bonjour, comment puis-je vous aider aujourd’hui ?') }
+    { role: 'assistant', content: t('kb.welcome', "Bonjour, comment puis-je vous aider aujourd'hui ?") }
   ]);
-  const [pendingUploads, setPendingUploads] = useState<UploadedAttachment[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiLinks, setAiLinks] = useState<{ title?: string; url: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isSendingRef = useRef(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,29 +34,10 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
 
   const recommendedArticles = useMemo(() => articles.slice(0, 4), [articles]);
 
-  const handleFileSelection = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const selected = Array.from(files);
-    const remainingSlots = Math.max(0, 3 - pendingUploads.length);
-    const toUpload = selected.slice(0, remainingSlots);
-    if (toUpload.length === 0) {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-    setError(null);
-    setPendingUploads((prev) => [
-      ...prev,
-      ...toUpload.map((file, index) => ({ id: `${file.name}-${file.lastModified}-${index}-${Date.now()}`, file }))
-    ]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   const handleSend = async () => {
-    if (isSending) return;
+    if (isSendingRef.current || isSending) return;
     const trimmed = input.trim();
-    if (!trimmed && pendingUploads.length === 0) {
+    if (!trimmed) {
       return;
     }
     const userMessage: ChatMessage = { role: 'user', content: trimmed };
@@ -70,12 +45,12 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
     setMessages(history);
     setInput('');
     setIsSending(true);
+    isSendingRef.current = true;
     setError(null);
     try {
       const response = await sendKnowledgeMessage({
         prompt: trimmed,
-        history,
-        files: pendingUploads.map((item) => item.file)
+        history
       });
       const assistantReply: ChatMessage = { role: 'assistant', content: response.message };
       setMessages((previous) => [...previous, assistantReply]);
@@ -84,10 +59,10 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
       setAiLinks(merged);
     } catch (err) {
       console.error('Knowledge assistant failed', err);
-      setError(t('kb.error', 'Le service IA est momentanément indisponible.'));
+      setError(t('kb.error', 'Le service IA est momentanement indisponible.'));
     } finally {
-      setPendingUploads([]);
       setIsSending(false);
+      isSendingRef.current = false;
     }
   };
 
@@ -95,9 +70,14 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
     <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
       <Card className="flex h-[70vh] flex-col overflow-hidden md:h-[580px]">
         <header className="relative border-b border-subtle/70 pb-4">
-          <span className="pointer-events-none absolute -right-6 -top-10 h-24 w-24 rounded-full bg-brand-primary/10 blur-2xl" aria-hidden />
+          <span
+            className="pointer-events-none absolute -right-6 -top-10 h-24 w-24 rounded-full bg-brand-primary/10 blur-2xl"
+            aria-hidden
+          />
           <h1 className="text-2xl font-semibold text-brand-text">{t('kb.title')}</h1>
-          <p className="mt-1 text-sm text-brand-muted">{t('kb.subtitle', 'Discutez avec l’assistant, ajoutez des photos et obtenez des conseils contextualisés.')}</p>
+          <p className="mt-1 text-sm text-brand-muted">
+            {t('kb.subtitle', "Discutez avec l'assistant et obtenez des conseils contextualises.")}
+          </p>
         </header>
         <div className="flex-1 space-y-4 overflow-y-auto py-5 pr-1">
           {messages.map((message, index) => (
@@ -114,63 +94,23 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
           ))}
           {isSending && (
             <div className="max-w-[70%] rounded-2xl border border-dashed border-brand-secondary/30 bg-brand-background px-4 py-3 text-sm text-brand-muted shadow-sm">
-              {t('kb.typing', 'Analyse en cours…')}
+              {t('kb.typing', 'Analyse en cours...')}
             </div>
           )}
           <div ref={bottomRef} />
         </div>
         <footer className="space-y-3 border-t border-subtle/70 bg-brand-background/60 p-4">
-          {pendingUploads.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {pendingUploads.map((file) => (
-                <span
-                  key={file.id}
-                  className="group flex items-center gap-2 rounded-full border border-subtle/60 bg-brand-surface/90 px-3 py-1 text-xs text-brand-text shadow-sm"
-                >
-                  <span className="truncate max-w-[160px]" title={file.file.name}>
-                    {file.file.name}
-                  </span>
-                  <button
-                    type="button"
-                    className="rounded-full bg-brand-danger/10 px-2 py-0.5 text-brand-danger transition hover:bg-brand-danger/20"
-                    onClick={() => setPendingUploads((prev) => prev.filter((item) => item.id !== file.id))}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="flex flex-1 items-center gap-3 rounded-2xl border border-subtle/70 bg-brand-background/80 px-4 py-3 shadow-inner">
               <textarea
                 rows={2}
                 className="h-16 flex-1 resize-none bg-transparent text-sm text-brand-text outline-none placeholder:text-brand-muted"
-                placeholder={t('kb.placeholder', 'Posez une question sur vos cultures…') ?? ''}
+                placeholder={t('kb.placeholder', 'Posez une question sur vos cultures...') ?? ''}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="focus-ring rounded-full bg-brand-secondary/15 p-2 text-lg transition hover:bg-brand-secondary/25"
-                aria-label={t('kb.addPhoto', 'Ajouter des photos') ?? 'Ajouter des photos'}
-              >
-                📷
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                title={t('kb.addPhoto', 'Ajouter des photos') ?? 'Ajouter des photos'}
-                aria-label={t('kb.addPhoto', 'Ajouter des photos') ?? 'Ajouter des photos'}
-                placeholder={t('kb.addPhoto', 'Ajouter des photos') ?? 'Ajouter des photos'}
-                onChange={(event) => handleFileSelection(event.target.files)}
-              />
             </div>
-            <Button onClick={handleSend} isLoading={isSending} disabled={isSending}>
+            <Button onClick={handleSend} isLoading={isSending} disabled={isSending || !input.trim()}>
               {t('kb.send', 'Envoyer')}
             </Button>
           </div>
@@ -182,18 +122,27 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
         </footer>
       </Card>
       <Card className="space-y-4">
-        <h2 className="text-lg font-semibold text-brand-text">{t('kb.recommended', 'Ressources recommandées')}</h2>
+        <h2 className="text-lg font-semibold text-brand-text">
+          {t('kb.recommended', 'Ressources recommandees')}
+        </h2>
         {aiLinks.length > 0 ? (
           <ul className="space-y-3 text-sm text-brand-text">
             {aiLinks.map((link) => (
-              <li key={link.url} className="group rounded-2xl border border-subtle/70 bg-brand-background p-3 transition-all duration-300 hover:border-brand-secondary/40">
+              <li
+                key={link.url}
+                className="group rounded-2xl border border-subtle/70 bg-brand-background p-3 transition-all duration-300 hover:border-brand-secondary/40"
+              >
                 <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3">
-                  <span className="rounded-md bg-brand-secondary/10 px-2 py-1 text-xs font-semibold text-brand-secondary">Lien</span>
+                  <span className="rounded-md bg-brand-secondary/10 px-2 py-1 text-xs font-semibold text-brand-secondary">
+                    Lien
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold truncate">{getHostname(link.url, link.title)}</span>
-                    <span className="block text-xs text-brand-muted overflow-hidden text-ellipsis whitespace-nowrap">{getPathname(link.url)}</span>
+                    <span className="block text-xs text-brand-muted overflow-hidden text-ellipsis whitespace-nowrap">
+                      {getPathname(link.url)}
+                    </span>
                   </span>
-                  <span aria-hidden>↗</span>
+                  <span aria-hidden>→</span>
                 </a>
               </li>
             ))}
@@ -204,7 +153,9 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
             <Skeleton className="h-16 w-full" />
           </div>
         ) : recommendedArticles.length === 0 ? (
-          <p className="text-sm text-brand-muted">{t('kb.empty', 'Aucun article ne correspond à votre recherche.')}</p>
+          <p className="text-sm text-brand-muted">
+            {t('kb.empty', 'Aucun article ne correspond a votre recherche.')}
+          </p>
         ) : (
           <ul className="space-y-3 text-sm text-brand-text">
             {recommendedArticles.map((article) => (
@@ -228,10 +179,8 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
   );
 };
 
-// Utilitaires liens: extraction, dédoublonnage et affichage propre
 const sanitizeUrl = (raw: string): string => {
   let url = raw.trim();
-  // Supprime parenthèses/ponctuation entourant
   url = url.replace(/^\((.*)\)$/, '$1');
   url = url.replace(/[)\].,;!?]+$/g, '');
   return url;
@@ -275,12 +224,8 @@ const formatAssistantMessage = (raw: string): string => {
       continue;
     }
     const withoutMarker = trimmed.replace(/^-+\s*/, '').trim();
-    if (!withoutMarker) {
-      continue;
-    }
-    if (!/[A-Za-zÀ-ÖØ-öø-ÿ0-9]/.test(withoutMarker)) {
-      continue;
-    }
+    if (!withoutMarker) continue;
+    if (!/[A-Za-z0-9]/.test(withoutMarker)) continue;
     cleaned.push(trimmed);
   }
   return cleaned.join('\n').trim();

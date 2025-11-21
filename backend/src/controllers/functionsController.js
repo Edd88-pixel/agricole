@@ -112,6 +112,13 @@ export const runDiagnosisInference = async (req, res, next) => {
   }
 };
 
+const uploadAndSignImages = async (files, bucket, owner) => {
+  const paths = await uploadFilesToBucket(files, bucket, owner);
+  const signedUrls = await supabaseService.createSignedUrls(paths, { bucket });
+  const accessibleImages = signedUrls.length > 0 ? signedUrls : paths;
+  return { paths, signedUrls, accessibleImages, bucket };
+};
+
 export const runKnowledgeChat = async (req, res, next) => {
   try {
     const prompt = toNonEmptyString(req.body?.prompt);
@@ -135,27 +142,35 @@ export const runKnowledgeChat = async (req, res, next) => {
     const boundedHistory = clampArray(history, 20);
     const owner = req.user?.id;
     const files = clampArray(req.files || [], 5);
-    const uploadedPaths = await uploadFilesToBucket(
-      files,
-      supabaseService.defaultBuckets.knowledge,
-      owner
-    );
-    const signedUrls = await supabaseService.createSignedUrls(uploadedPaths, {
-      bucket: supabaseService.defaultBuckets.knowledge
-    });
-    const accessibleImages = signedUrls.length > 0 ? signedUrls : uploadedPaths;
+
+    let uploadResult;
+    try {
+      uploadResult = await uploadAndSignImages(
+        files,
+        supabaseService.defaultBuckets.knowledge,
+        owner
+      );
+    } catch (error) {
+      // If the knowledge bucket has strict RLS or is misconfigured, fall back to the diagnosis bucket
+      console.warn('Knowledge upload failed, falling back to diagnosis bucket', error);
+      uploadResult = await uploadAndSignImages(
+        files,
+        supabaseService.defaultBuckets.diagnosis,
+        owner
+      );
+    }
 
     const payload = {
       prompt,
       history: boundedHistory,
-      imagePaths: uploadedPaths,
-      signedUrls,
-      bucket: supabaseService.defaultBuckets.knowledge,
+      imagePaths: uploadResult.paths,
+      signedUrls: uploadResult.signedUrls,
+      bucket: uploadResult.bucket,
       query: prompt,
       message: prompt,
       messages: boundedHistory,
-      images: accessibleImages,
-      signedImagePaths: signedUrls
+      images: uploadResult.accessibleImages,
+      signedImagePaths: uploadResult.signedUrls
     };
 
     let result;

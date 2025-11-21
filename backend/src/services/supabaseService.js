@@ -11,7 +11,11 @@ const mapSupabaseError = (error, context) => {
   }
 
   const status = typeof error.status === 'number' && error.status >= 400 ? error.status : 502;
-  const message = status >= 500 ? context || 'Unexpected service error' : error.message || context || 'Request failed';
+  const detail = error?.message ? `: ${error.message}` : '';
+  const message =
+    status >= 500
+      ? `${context || 'Unexpected service error'}${detail}`
+      : error.message || context || 'Request failed';
 
   return buildHttpError(message, status);
 };
@@ -40,6 +44,8 @@ const wrapSupabaseCall = async (fn, options = {}) => {
     handleResult(data, error, options);
     return data;
   } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Supabase call failed', { context: options?.context, error });
     if (error?.status) throw error;
     throw buildHttpError(options?.context || 'Upstream service unavailable', 502);
   }
@@ -271,6 +277,37 @@ export const supabaseService = {
   async invokeEdgeFunction(name, body, headers) {
     if (!name) {
       throw new Error('Function name is required to invoke a Supabase Edge Function.');
+    }
+
+    const isUrl = /^https?:\/\//i.test(name);
+    const serviceKey = config.supabase.serviceRoleKey;
+
+    // Prefer direct HTTP call when a full URL is provided (e.g., when Postman URLs are known to work)
+    if (isUrl) {
+      const target = name;
+      const resolvedHeaders = {
+        'Content-Type': 'application/json',
+        ...(serviceKey ? { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } : {}),
+        ...(headers ?? {})
+      };
+
+      const response = await fetch(target, {
+        method: 'POST',
+        headers: resolvedHeaders,
+        body: JSON.stringify(body ?? {})
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw buildHttpError(
+          text || `Failed to invoke edge function ${name}`,
+          typeof response.status === 'number' ? response.status : 502
+        );
+      }
+
+      return response.headers.get('content-type')?.includes('application/json')
+        ? await response.json()
+        : await response.text();
     }
 
     const data = await wrapSupabaseCall(

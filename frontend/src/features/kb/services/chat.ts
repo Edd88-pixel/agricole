@@ -16,13 +16,13 @@ type KnowledgeResponse = {
 type KnowledgeRequest = {
   prompt: string;
   history: ChatMessage[];
-  files: File[];
+  files?: File[];
 };
 
 export const sendKnowledgeMessage = async ({
   prompt,
   history,
-  files
+  files = []
 }: KnowledgeRequest): Promise<KnowledgeResponse> => {
   const response = await invokeKnowledgeChat<KnowledgeResponse>({ prompt, history, files });
   return response;
