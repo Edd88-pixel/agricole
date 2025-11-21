@@ -8,6 +8,46 @@ import {
 } from '../utils/validation.js';
 import { uploadFilesToBucket } from '../utils/storage.js';
 
+const buildDiagnosisFallback = (payload, uploadedPaths, signedUrls) => {
+  const images = signedUrls.length > 0 ? signedUrls : uploadedPaths;
+  const timestamp = new Date().toISOString();
+
+  return {
+    id: `local-diag-${Date.now()}`,
+    crop: payload.crop,
+    stage: payload.stage,
+    symptoms: payload.symptoms,
+    context: payload.context,
+    createdAt: timestamp,
+    status: 'stressed',
+    confidence: 0.5,
+    primary: {
+      label: 'Analyse locale',
+      description:
+        'Service d\'inférence Supabase indisponible. Résultat généré localement pour permettre la continuité.',
+      confidence: 0.5,
+      status: 'stressed'
+    },
+    alternatives: [],
+    actions: ['Vérifiez la configuration Supabase ou relancez plus tard.'],
+    images,
+    imagePaths: uploadedPaths
+  };
+};
+
+const buildKnowledgeFallback = (payload, images) => ({
+  id: `local-kb-${Date.now()}`,
+  createdAt: new Date().toISOString(),
+  message:
+    'Le traitement Supabase Edge est indisponible. Voici un rappel de votre question et des informations fournies.',
+  images,
+  links: [],
+  echo: {
+    prompt: payload.prompt,
+    history: payload.history
+  }
+});
+
 export const runDiagnosisInference = async (req, res, next) => {
   try {
     const { context, model } = req.body || {};
@@ -48,10 +88,23 @@ export const runDiagnosisInference = async (req, res, next) => {
       payload.model = model;
     }
 
-    const result = await supabaseService.invokeEdgeFunction(
-      supabaseService.defaultFunctions.diagnosisInfer,
-      payload
-    );
+    let result;
+    try {
+      result = await supabaseService.invokeEdgeFunction(
+        supabaseService.defaultFunctions.diagnosisInfer,
+        payload
+      );
+    } catch (error) {
+      const status = error?.status;
+      const isUnavailable = !status || status >= 500;
+      if (!isUnavailable) {
+        throw error;
+      }
+
+      // eslint-disable-next-line no-console
+      console.warn('Edge diagnosis invocation failed, using fallback', error);
+      result = buildDiagnosisFallback(payload, uploadedPaths, signedUrls);
+    }
 
     res.json({ data: { ...result, imagePaths: uploadedPaths, signedUrls } });
   } catch (error) {
@@ -105,10 +158,23 @@ export const runKnowledgeChat = async (req, res, next) => {
       signedImagePaths: signedUrls
     };
 
-    const result = await supabaseService.invokeEdgeFunction(
-      supabaseService.defaultFunctions.knowledgeChat,
-      payload
-    );
+    let result;
+    try {
+      result = await supabaseService.invokeEdgeFunction(
+        supabaseService.defaultFunctions.knowledgeChat,
+        payload
+      );
+    } catch (error) {
+      const status = error?.status;
+      const isUnavailable = !status || status >= 500;
+      if (!isUnavailable) {
+        throw error;
+      }
+
+      // eslint-disable-next-line no-console
+      console.warn('Edge knowledge invocation failed, using fallback', error);
+      result = buildKnowledgeFallback(payload, accessibleImages);
+    }
 
     res.json({ data: result });
   } catch (error) {

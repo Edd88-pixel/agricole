@@ -52,6 +52,9 @@ export const updateProfile = async (req, res, next) => {
     if (isNonEmptyString(req.body?.full_name)) updates.full_name = toNonEmptyString(req.body.full_name);
     if (isNonEmptyString(req.body?.location)) updates.location = toNonEmptyString(req.body.location);
 
+    const locale = toNonEmptyString(req.body?.locale);
+    if (locale) updates.locale = locale;
+
     const objectives = toStringArray(req.body?.objectives);
     if (objectives.length > 0) updates.objectives = objectives;
 
