@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">87.65% </span>
+                <span class="strong">88% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>142/162</span>
+                <span class='fraction'>132/150</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">62.06% </span>
+                <span class="strong">64.28% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>18/29</span>
+                <span class='fraction'>18/28</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">87.65% </span>
+                <span class="strong">88% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>142/162</span>
+                <span class='fraction'>132/150</span>
             </div>
         
             
@@ -213,26 +213,7 @@
 <a name='L148'></a><a href='#L148'>148</a>
 <a name='L149'></a><a href='#L149'>149</a>
 <a name='L150'></a><a href='#L150'>150</a>
-<a name='L151'></a><a href='#L151'>151</a>
-<a name='L152'></a><a href='#L152'>152</a>
-<a name='L153'></a><a href='#L153'>153</a>
-<a name='L154'></a><a href='#L154'>154</a>
-<a name='L155'></a><a href='#L155'>155</a>
-<a name='L156'></a><a href='#L156'>156</a>
-<a name='L157'></a><a href='#L157'>157</a>
-<a name='L158'></a><a href='#L158'>158</a>
-<a name='L159'></a><a href='#L159'>159</a>
-<a name='L160'></a><a href='#L160'>160</a>
-<a name='L161'></a><a href='#L161'>161</a>
-<a name='L162'></a><a href='#L162'>162</a>
-<a name='L163'></a><a href='#L163'>163</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L151'></a><a href='#L151'>151</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -260,11 +241,6 @@
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">6x</span>
@@ -391,15 +367,8 @@
 import type { DiagnosisResult } from '@/features/diagnosis/types/diagnosis';
 import type { HistoryEntry } from '@/features/history/types/history';
 import type { KnowledgeArticle } from '@/features/kb/types/article';
-import {
-  fetchDiagnoses,
-  insertDiagnosis,
-  updateDiagnosisResolved,
-  deleteDiagnosis,
-  updateDiagnosisDetails
-} from '@/services/supabase/diagnosis';
-import { fetchKnowledgeArticles } from '@/services/supabase/knowledge';
-import { supabase } from '@/services/supabase/client';
+import { fetchDiagnoses, insertDiagnosis, updateDiagnosisResolved, deleteDiagnosis, updateDiagnosisDetails } from '@/services/api/diagnosis';
+import { fetchKnowledgeArticles } from '@/services/api/knowledge';
 &nbsp;
 const MAX_HISTORY = 20;
 &nbsp;
@@ -418,16 +387,11 @@ export const useSupabaseData = () =&gt; {
   const loadHistory = useCallback(async () =&gt; {
     setHistoryLoading(true);
     try {
-      const sessionResponse = await supabase.auth.getSession();
-      const session = sessionResponse?.data?.session;
-      if (!session) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
-<span class="cstat-no" title="statement not covered" >        setHistory([]);</span>
-<span class="cstat-no" title="statement not covered" >        return;</span>
-<span class="cstat-no" title="statement not covered" >      }</span>
       const records = await fetchDiagnoses();
       setHistory(records.slice(0, MAX_HISTORY));
 <span class="branch-0 cbranch-no" title="branch not covered" >    } catch (error) {</span>
-<span class="cstat-no" title="statement not covered" >      console.error('Failed to load diagnoses from Supabase', error);</span>
+<span class="cstat-no" title="statement not covered" >      console.error('Failed to load diagnoses from backend', error);</span>
+<span class="cstat-no" title="statement not covered" >      setHistory([]);</span>
     } finally {
       setHistoryLoading(false);
     }
@@ -439,7 +403,7 @@ export const useSupabaseData = () =&gt; {
       const records = await fetchKnowledgeArticles();
       setArticles(records);
 <span class="branch-0 cbranch-no" title="branch not covered" >    } catch (error) {</span>
-<span class="cstat-no" title="statement not covered" >      console.error('Failed to load knowledge base from Supabase', error);</span>
+<span class="cstat-no" title="statement not covered" >      console.error('Failed to load knowledge base from backend', error);</span>
     } finally {
       setArticlesLoading(false);
     }
@@ -556,7 +520,7 @@ export type SupabaseDataContext = ReturnType&lt;typeof useSupabaseData&gt;;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-20T08:04:19.054Z
+                at 2025-11-21T23:08:12.475Z
             </div>
         <script src="../prettify.js"></script>
         <script>

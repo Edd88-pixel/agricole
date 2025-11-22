@@ -282,7 +282,7 @@ export const supabaseService = {
     const isUrl = /^https?:\/\//i.test(name);
     const serviceKey = config.supabase.serviceRoleKey;
 
-    // Prefer direct HTTP call when a full URL is provided (e.g., when Postman URLs are known to work)
+    // Prefer direct HTTP call when a full URL is provided 
     if (isUrl) {
       const target = name;
       const resolvedHeaders = {

@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/138</span>
+                <span class='fraction'>0/137</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/138</span>
+                <span class='fraction'>0/137</span>
             </div>
         
             
@@ -201,9 +201,7 @@
 <a name='L136'></a><a href='#L136'>136</a>
 <a name='L137'></a><a href='#L137'>137</a>
 <a name='L138'></a><a href='#L138'>138</a>
-<a name='L139'></a><a href='#L139'>139</a>
-<a name='L140'></a><a href='#L140'>140</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L139'></a><a href='#L139'>139</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -342,10 +340,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { useCallback, useEffect, useMemo, useState } from 'react';<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
-<span class="cstat-no" title="statement not covered" >import type { User } from '@supabase/supabase-js';</span>
 <span class="cstat-no" title="statement not covered" >import type { OnboardingPayload, ProfileUpdate, SupportedLocale, UserProfile } from '@/features/profile/types/profile';</span>
-<span class="cstat-no" title="statement not covered" >import { createProfile, fetchProfile, saveOnboardingProfile, updateProfile } from '@/services/supabase/profile';</span>
-<span class="cstat-no" title="statement not covered" >import { createSignedProfileUrl } from '@/services/supabase/storage';</span>
+<span class="cstat-no" title="statement not covered" >import { createProfile, fetchProfile, saveOnboardingProfile, updateProfile } from '@/services/api/profile';</span>
+<span class="cstat-no" title="statement not covered" >import { createSignedProfileUrl } from '@/services/api/storage';</span>
+<span class="cstat-no" title="statement not covered" >import type { AuthUser } from '@/services/api/auth';</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >type ProfileState = {</span>
 <span class="cstat-no" title="statement not covered" >  profile: UserProfile | null;</span>
@@ -357,11 +355,11 @@
 <span class="cstat-no" title="statement not covered" >  updateProfileDetails: (payload: ProfileUpdate) =&gt; Promise&lt;void&gt;;</span>
 <span class="cstat-no" title="statement not covered" >};</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >const inferDisplayName = (user: User) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >const inferDisplayName = (user: AuthUser) =&gt;</span>
 <span class="cstat-no" title="statement not covered" >  (user.user_metadata?.full_name as string | undefined)?.trim() ||</span>
 <span class="cstat-no" title="statement not covered" >  (user.email ? user.email.split('@')[0] ?? user.email : 'Producer');</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >const inferNames = (user: User) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >const inferNames = (user: AuthUser) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  const metaFirst = (user.user_metadata?.first_name as string | undefined)?.trim();</span>
 <span class="cstat-no" title="statement not covered" >  const metaLast = (user.user_metadata?.last_name as string | undefined)?.trim();</span>
 <span class="cstat-no" title="statement not covered" >  if (metaFirst || metaLast) {</span>
@@ -398,7 +396,7 @@
 <span class="cstat-no" title="statement not covered" >  }</span>
 <span class="cstat-no" title="statement not covered" >};</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >const inferLocale = (user: User): SupportedLocale =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >const inferLocale = (user: AuthUser): SupportedLocale =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  const candidate = (user.user_metadata?.locale as string | undefined)?.slice(0, 2)?.toLowerCase();</span>
 <span class="cstat-no" title="statement not covered" >  if (candidate === 'en' || candidate === 'fr') {</span>
 <span class="cstat-no" title="statement not covered" >    return candidate;</span>
@@ -406,7 +404,7 @@
 <span class="cstat-no" title="statement not covered" >  return 'fr';</span>
 <span class="cstat-no" title="statement not covered" >};</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >export const useUserProfile = (user: User | null | undefined): ProfileState =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >export const useUserProfile = (user: AuthUser | null | undefined): ProfileState =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  const [profile, setProfile] = useState&lt;UserProfile | null&gt;(null);</span>
 <span class="cstat-no" title="statement not covered" >  const [isLoading, setIsLoading] = useState&lt;boolean&gt;(Boolean(user));</span>
 <span class="cstat-no" title="statement not covered" >  const [error, setError] = useState&lt;Error&gt;();</span>
@@ -421,11 +419,10 @@
 <span class="cstat-no" title="statement not covered" >    setIsLoading(true);</span>
 <span class="cstat-no" title="statement not covered" >    setError(undefined);</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      let data = await fetchProfile(user.id);</span>
+<span class="cstat-no" title="statement not covered" >      let data = await fetchProfile();</span>
 <span class="cstat-no" title="statement not covered" >      if (!data) {</span>
 <span class="cstat-no" title="statement not covered" >        const names = inferNames(user);</span>
 <span class="cstat-no" title="statement not covered" >        data = await createProfile({</span>
-<span class="cstat-no" title="statement not covered" >          id: user.id,</span>
 <span class="cstat-no" title="statement not covered" >          email: user.email ?? undefined,</span>
 <span class="cstat-no" title="statement not covered" >          displayName: inferDisplayName(user),</span>
 <span class="cstat-no" title="statement not covered" >          firstName: names.firstName,</span>
@@ -451,7 +448,7 @@
 <span class="cstat-no" title="statement not covered" >  const completeOnboarding = useCallback(</span>
 <span class="cstat-no" title="statement not covered" >    async (payload: OnboardingPayload) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >      if (!user) return;</span>
-<span class="cstat-no" title="statement not covered" >      const updated = await saveOnboardingProfile(user.id, payload);</span>
+<span class="cstat-no" title="statement not covered" >      const updated = await saveOnboardingProfile(payload);</span>
 <span class="cstat-no" title="statement not covered" >      setProfile(updated);</span>
 <span class="cstat-no" title="statement not covered" >    },</span>
 <span class="cstat-no" title="statement not covered" >    [user]</span>
@@ -460,7 +457,7 @@
 <span class="cstat-no" title="statement not covered" >  const updateProfileDetails = useCallback(</span>
 <span class="cstat-no" title="statement not covered" >    async (payload: ProfileUpdate) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >      if (!user) return;</span>
-<span class="cstat-no" title="statement not covered" >      const updated = await updateProfile(user.id, payload);</span>
+<span class="cstat-no" title="statement not covered" >      const updated = await updateProfile(payload);</span>
 <span class="cstat-no" title="statement not covered" >      const decorated = await decorateProfile(updated);</span>
 <span class="cstat-no" title="statement not covered" >      setProfile(decorated);</span>
 <span class="cstat-no" title="statement not covered" >    },</span>
@@ -487,7 +484,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-20T08:04:19.054Z
+                at 2025-11-21T23:08:12.475Z
             </div>
         <script src="../prettify.js"></script>
         <script>

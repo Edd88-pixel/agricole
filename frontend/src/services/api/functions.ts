@@ -9,7 +9,7 @@ export type DiagnosisInferencePayload = {
   model?: string;
 };
 
-const LONG_FUNCTION_TIMEOUT_MS = 120000000;
+const LONG_FUNCTION_TIMEOUT_MS = 120000000; 
 
 export const invokeDiagnosisInference = async <TResult>(payload: DiagnosisInferencePayload): Promise<TResult> => {
   const formData = new FormData();
