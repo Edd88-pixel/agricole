@@ -5,25 +5,25 @@ type ChatMessage = {
   content: string;
 };
 
-type KnowledgeResponse = {
-  id: string;
-  createdAt: string;
-  message: string;
-  images: string[];
-  links?: { title?: string; url: string }[];
+type KnowledgeQueuedResponse = {
+  status: 'queued';
+  conversationId: string;
+  messageId: string;
 };
 
 type KnowledgeRequest = {
   prompt: string;
   history: ChatMessage[];
   files?: File[];
+  conversationId?: string;
 };
 
 export const sendKnowledgeMessage = async ({
   prompt,
   history,
-  files = []
-}: KnowledgeRequest): Promise<KnowledgeResponse> => {
-  const response = await invokeKnowledgeChat<KnowledgeResponse>({ prompt, history, files });
+  files = [],
+  conversationId
+}: KnowledgeRequest): Promise<KnowledgeQueuedResponse> => {
+  const response = await invokeKnowledgeChat<KnowledgeQueuedResponse>({ prompt, history, files, conversationId });
   return response;
 };

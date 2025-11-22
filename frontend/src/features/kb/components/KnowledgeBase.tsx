@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Skeleton from '@/components/ui/Skeleton';
 import type { KnowledgeArticle } from '../types/article';
 import { sendKnowledgeMessage } from '../services/chat';
+import { subscribeToKnowledgeEvents, type KnowledgeRealtimeEvent } from '../services/realtime';
 
 type Props = {
   articles: KnowledgeArticle[];
@@ -14,6 +15,8 @@ type Props = {
 type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
+  id?: string;
+  status?: 'streaming' | 'done' | 'error' | 'queued';
 };
 
 const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
@@ -25,14 +28,145 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiLinks, setAiLinks] = useState<{ title?: string; url: string }[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const [generationStatus, setGenerationStatus] = useState<'idle' | 'queued' | 'streaming' | 'delayed'>('idle');
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const isSendingRef = useRef(false);
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+  const slowResponseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeMessageRef = useRef<string | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const target = bottomRef.current;
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isSending]);
 
+  useEffect(() => {
+    return () => {
+      subscriptionRef.current?.unsubscribe();
+      if (slowResponseTimer.current) {
+        clearTimeout(slowResponseTimer.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    activeMessageRef.current = activeMessageId;
+  }, [activeMessageId]);
+
   const recommendedArticles = useMemo(() => articles.slice(0, 4), [articles]);
+
+  const ensureSubscription = useCallback(
+    (newConversationId: string, onEvent: (event: KnowledgeRealtimeEvent) => void) => {
+      if (!newConversationId) return;
+
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+
+      subscriptionRef.current = subscribeToKnowledgeEvents({ conversationId: newConversationId, onEvent });
+    },
+    []
+  );
+
+  const resetSlowTimer = () => {
+    if (slowResponseTimer.current) {
+      clearTimeout(slowResponseTimer.current);
+    }
+    slowResponseTimer.current = null;
+  };
+
+  const handleGenerationComplete = () => {
+    setIsSending(false);
+    isSendingRef.current = false;
+    setGenerationStatus('idle');
+    resetSlowTimer();
+  };
+
+  const handleRealtimeEvent = useCallback(
+    (realtimeEvent: KnowledgeRealtimeEvent) => {
+      if (!realtimeEvent) return;
+      if (activeMessageRef.current && realtimeEvent.message_id !== activeMessageRef.current) return;
+
+      setMessages((previous) => {
+        const existingIndex = previous.findIndex((msg) => msg.id === realtimeEvent.message_id);
+        const nextMessages = [...previous];
+
+        const upsertAssistantMessage = (content: string, status: ChatMessage['status']) => {
+          if (existingIndex >= 0) {
+            nextMessages[existingIndex] = {
+              ...nextMessages[existingIndex],
+              content,
+              status
+            };
+          } else {
+            nextMessages.push({
+              id: realtimeEvent.message_id,
+              role: 'assistant',
+              content,
+              status
+            });
+          }
+        };
+
+        switch (realtimeEvent.event) {
+          case 'start':
+            upsertAssistantMessage('', 'streaming');
+            break;
+          case 'chunk':
+            upsertAssistantMessage(
+              `${nextMessages[existingIndex]?.content ?? ''}${realtimeEvent.content ?? ''}`,
+              'streaming'
+            );
+            break;
+          case 'end':
+            upsertAssistantMessage(realtimeEvent.content ?? '', 'done');
+            break;
+          case 'error':
+            upsertAssistantMessage(realtimeEvent.content ?? '', 'error');
+            break;
+          default:
+            break;
+        }
+
+        return nextMessages;
+      });
+
+      if (realtimeEvent.event === 'chunk') {
+        setGenerationStatus('streaming');
+        return;
+      }
+
+      if (realtimeEvent.event === 'start') {
+        setGenerationStatus('streaming');
+        return;
+      }
+
+      if (realtimeEvent.event === 'end') {
+        const fullContent = realtimeEvent.content ?? '';
+        const parsed = extractLinks(fullContent);
+        const merged = dedupeLinks([...(realtimeEvent.links ?? []), ...parsed]).slice(0, 6);
+        setAiLinks(merged);
+        handleGenerationComplete();
+        activeMessageRef.current = null;
+        setActiveMessageId(null);
+        return;
+      }
+
+      if (realtimeEvent.event === 'error') {
+        const fallbackError =
+          realtimeEvent.error || t('kb.error', 'Le service IA est momentanement indisponible.');
+        setError(fallbackError);
+        handleGenerationComplete();
+        activeMessageRef.current = null;
+        setActiveMessageId(null);
+      }
+    },
+    [t]
+  );
 
   const handleSend = async () => {
     if (isSendingRef.current || isSending) return;
@@ -47,22 +181,35 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
     setIsSending(true);
     isSendingRef.current = true;
     setError(null);
+    setGenerationStatus('queued');
     try {
       const response = await sendKnowledgeMessage({
         prompt: trimmed,
-        history
+        history: history.map(({ role, content }) => ({ role, content })),
+        conversationId: conversationId ?? undefined
       });
-      const assistantReply: ChatMessage = { role: 'assistant', content: response.message };
-      setMessages((previous) => [...previous, assistantReply]);
-      const parsed = extractLinks(response.message);
-      const merged = dedupeLinks([...(response.links ?? []), ...parsed]).slice(0, 6);
-      setAiLinks(merged);
+      const newConversationId = response.conversationId;
+      setConversationId(newConversationId);
+      setActiveMessageId(response.messageId);
+      activeMessageRef.current = response.messageId;
+      setMessages((previous) => [
+        ...previous,
+        { role: 'assistant', content: '', id: response.messageId, status: 'streaming' }
+      ]);
+      ensureSubscription(newConversationId, handleRealtimeEvent);
+      if (slowResponseTimer.current) {
+        clearTimeout(slowResponseTimer.current);
+      }
+      slowResponseTimer.current = setTimeout(() => {
+        setGenerationStatus((current) => (current === 'streaming' || current === 'queued' ? 'delayed' : current));
+      }, 45000);
     } catch (err) {
       console.error('Knowledge assistant failed', err);
       setError(t('kb.error', 'Le service IA est momentanement indisponible.'));
-    } finally {
       setIsSending(false);
       isSendingRef.current = false;
+      setGenerationStatus('idle');
+      resetSlowTimer();
     }
   };
 
@@ -82,7 +229,7 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
         <div className="flex-1 space-y-4 overflow-y-auto py-5 pr-1">
           {messages.map((message, index) => (
             <div
-              key={`${message.role}-${index}`}
+              key={message.id ?? `${message.role}-${index}`}
               className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm transition-all duration-300 motion-safe:animate-[fade-in-up_0.35s_ease-out] ${
                 message.role === 'assistant'
                   ? 'self-start bg-brand-background text-brand-text font-serif text-[15px] leading-7 tracking-[0.01em]'
@@ -94,7 +241,11 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
           ))}
           {isSending && (
             <div className="max-w-[70%] rounded-2xl border border-dashed border-brand-secondary/30 bg-brand-background px-4 py-3 text-sm text-brand-muted shadow-sm">
-              {t('kb.typing', 'Analyse en cours...')}
+              {generationStatus === 'delayed'
+                ? t('kb.slow', 'La reponse prend plus de temps que prevu...')
+                : generationStatus === 'queued'
+                  ? t('kb.connecting', 'Connexion au flux en cours...')
+                  : t('kb.typing', 'IA en train de rediger...')}
             </div>
           )}
           <div ref={bottomRef} />

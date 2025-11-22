@@ -31,12 +31,16 @@ export type KnowledgeRequestPayload = {
   prompt: string;
   history: { role: 'user' | 'assistant'; content: string }[];
   files?: File[];
+  conversationId?: string;
 };
 
 export const invokeKnowledgeChat = async <TResult>(payload: KnowledgeRequestPayload): Promise<TResult> => {
   const formData = new FormData();
   formData.append('prompt', payload.prompt);
   formData.append('history', JSON.stringify(payload.history));
+  if (payload.conversationId) {
+    formData.append('conversationId', payload.conversationId);
+  }
   (payload.files ?? []).forEach((file) => formData.append('files', file));
 
   const { data } = await apiClient.post<{ data: TResult }>('api/functions/knowledge', formData, {
