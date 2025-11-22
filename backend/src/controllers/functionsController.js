@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { supabaseService } from '../services/supabaseService.js';
 import {
   buildHttpError,
@@ -173,26 +174,55 @@ export const runKnowledgeChat = async (req, res, next) => {
       signedImagePaths: uploadResult.signedUrls
     };
 
-    let result;
-    try {
-      result = await supabaseService.invokeEdgeFunction(
-        supabaseService.defaultFunctions.knowledgeChat,
-        payload
-      );
-    } catch (error) {
-      const status = error?.status;
-      const isUnavailable = !status || status >= 500;
-      if (!isUnavailable) {
-        throw error;
-      }
+    const conversationId = toNonEmptyString(req.body?.conversationId) || randomUUID();
+    const messageId = randomUUID();
 
+    res.status(202).json({ data: { status: 'queued', conversationId, messageId } });
+
+    handleKnowledgeStreaming({
+      payload,
+      conversationId,
+      messageId,
+      accessibleImages: uploadResult.accessibleImages
+    }).catch((error) => {
       // eslint-disable-next-line no-console
-      console.warn('Edge knowledge invocation failed, using fallback', error);
-      result = buildKnowledgeFallback(payload, accessibleImages);
-    }
-
-    res.json({ data: result });
+      console.error('Knowledge streaming failed', error);
+    });
   } catch (error) {
     next(error);
+  }
+};
+
+const publishKnowledgeEvent = async (conversationId, messageId, event) =>
+  supabaseService.publishKnowledgeEvent({
+    conversation_id: conversationId,
+    message_id: messageId,
+    ...event
+  });
+
+const handleKnowledgeStreaming = async ({ payload, conversationId, messageId, accessibleImages }) => {
+  const publish = (event) => publishKnowledgeEvent(conversationId, messageId, event);
+
+  let aggregatedContent = '';
+  await publish({ event: 'start' });
+
+  try {
+    for await (const chunk of supabaseService.streamEdgeFunction(
+      supabaseService.defaultFunctions.knowledgeChat,
+      payload
+    )) {
+      const normalized = typeof chunk === 'string' ? chunk : String(chunk ?? '');
+      if (!normalized) continue;
+
+      aggregatedContent += normalized;
+      await publish({ event: 'chunk', content: normalized });
+    }
+
+    await publish({ event: 'end', content: aggregatedContent });
+  } catch (error) {
+    const fallback = buildKnowledgeFallback(payload, accessibleImages);
+    const message = error?.message || 'Knowledge generation failed';
+
+    await publish({ event: 'error', error: message, content: fallback.message });
   }
 };

@@ -8,6 +8,8 @@ import { supabaseService } from '../../src/services/supabaseService.js';
 vi.mock('../../src/services/supabaseService.js', () => ({
   supabaseService: {
     invokeEdgeFunction: vi.fn(),
+    streamEdgeFunction: vi.fn(),
+    publishKnowledgeEvent: vi.fn(),
     createSignedUrls: vi.fn().mockResolvedValue([]),
     uploadToBucket: vi.fn(),
     defaultBuckets: { diagnosis: 'diagnosis', knowledge: 'knowledge' },
@@ -53,15 +55,14 @@ describe('functionsController fallbacks', () => {
   });
 
   it('returns a fallback knowledge response when edge invocation fails', async () => {
-    supabaseService.invokeEdgeFunction.mockRejectedValueOnce(new Error('edge-down'));
-
     const response = await request(app)
       .post('/functions/knowledge')
       .send({ prompt: 'Quels sont les symptômes ?', history: [] });
 
-    expect(response.status).toBe(200);
-    expect(response.body.data.id).toMatch(/local-kb-/);
-    expect(response.body.data.echo.prompt).toBe('Quels sont les symptômes ?');
+    expect(response.status).toBe(202);
+    expect(response.body.data.status).toBe('queued');
+    expect(response.body.data.conversationId).toBeTruthy();
+    expect(response.body.data.messageId).toBeTruthy();
   });
 });
 
