@@ -95,3 +95,9 @@ Triggers potentiels (définir plus tard) :
   - Tests end-to-end éventuels pour valider l'expérience utilisateur complète.
 
 Cette étape reste purement conceptuelle et ne modifie pas le comportement existant ; la mise en œuvre sera réalisée dans les étapes ultérieures.
+
+## 6. Notes de mise en œuvre (étape 2)
+- L'API `/api/functions/knowledge` répond désormais rapidement avec `{ status: 'queued', conversationId, messageId }` après validation et upload. Le POST n'attend plus la réponse IA.
+- Le backend déclenche en tâche de fond l'appel streaming vers la fonction Edge `knowledgeChat` et publie les événements `kb_events` dans l'ordre : `start`, plusieurs `chunk`, puis `end` ou `error`.
+- Chaque événement contient systématiquement `conversation_id` et `message_id` pour permettre au frontend de filtrer son abonnement Supabase Realtime.
+- En cas d'erreur côté IA ou Supabase, un événement `error` est publié avec un message de fallback pour que le frontend puisse réagir sans rester bloqué.

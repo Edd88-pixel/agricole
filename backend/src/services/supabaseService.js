@@ -54,6 +54,7 @@ const wrapSupabaseCall = async (fn, options = {}) => {
 const tables = {
   diagnoses: 'diagnoses',
   knowledge: 'kb_articles',
+  knowledgeEvents: 'kb_events',
   profiles: 'users_profiles',
   feedback: 'diagnosis_feedback'
 };
@@ -319,6 +320,68 @@ export const supabaseService = {
       { context: `Failed to invoke edge function ${name}` }
     );
     return data;
+  },
+
+  async *streamEdgeFunction(name, body, headers) {
+    if (!name) {
+      throw new Error('Function name is required to invoke a Supabase Edge Function.');
+    }
+
+    const isUrl = /^https?:\/\//i.test(name);
+    const serviceKey = config.supabase.serviceRoleKey;
+    const target = isUrl ? name : `${config.supabase.url}/functions/v1/${name}`;
+
+    const resolvedHeaders = {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+      ...(serviceKey ? { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } : {}),
+      ...(headers ?? {})
+    };
+
+    const response = await fetch(target, {
+      method: 'POST',
+      headers: resolvedHeaders,
+      body: JSON.stringify(body ?? {})
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw buildHttpError(
+        text || `Failed to invoke edge function ${name}`,
+        typeof response.status === 'number' ? response.status : 502
+      );
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      const text = await response.text().catch(() => '');
+      if (text) {
+        yield text;
+      }
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      if (chunk) {
+        yield chunk;
+      }
+    }
+  },
+
+  async publishKnowledgeEvent(event) {
+    const payload = {
+      ...event,
+      created_at: event?.created_at ?? new Date().toISOString()
+    };
+
+    await wrapSupabaseCall(
+      () => supabase().from(tables.knowledgeEvents).insert(payload),
+      { context: 'Failed to publish knowledge event' }
+    );
   },
 
   defaultBuckets: buckets,
