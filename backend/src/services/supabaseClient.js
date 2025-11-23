@@ -17,7 +17,13 @@ export const getSupabaseClient = () => {
   assertSupabaseConfig();
 
   cachedClient = createClient(config.supabase.url, config.supabase.serviceRoleKey, {
-    auth: { persistSession: false }
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: {
+      headers: {
+        apikey: config.supabase.serviceRoleKey,
+        Authorization: `Bearer ${config.supabase.serviceRoleKey}`
+      }
+    }
   });
 
   return cachedClient;

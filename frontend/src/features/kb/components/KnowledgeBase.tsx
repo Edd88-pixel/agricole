@@ -44,6 +44,21 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
     cleanupRef.current = () => {};
   };
 
+  const parseContent = (raw?: string | null): { text: string; links?: { title?: string; url: string }[] } => {
+    if (!raw) return { text: '' };
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        const message = typeof parsed.message === 'string' ? parsed.message : '';
+        const links = Array.isArray(parsed.links) ? parsed.links : undefined;
+        if (message) return { text: message, links };
+      }
+    } catch {
+      // not JSON, keep raw
+    }
+    return { text: raw };
+  };
+
   const handleEvent = (event: KnowledgeEvent) => {
     if (event.event === 'start') {
       aggregatedRef.current = '';
@@ -54,20 +69,23 @@ const KnowledgeBase = ({ articles, isLoading = false }: Props) => {
     }
 
     if (event.event === 'chunk') {
-      aggregatedRef.current += event.content ?? '';
+      const parsed = parseContent(event.content);
+      aggregatedRef.current += parsed.text ?? '';
       setStreamingContent(aggregatedRef.current);
-      if (event.links && event.links.length > 0) {
-        setAiLinks((previous) => dedupeLinks([...(previous ?? []), ...(event.links ?? [])]).slice(0, 6));
+      const mergedLinks = [...(event.links ?? []), ...(parsed.links ?? [])];
+      if (mergedLinks.length > 0) {
+        setAiLinks((previous) => dedupeLinks([...(previous ?? []), ...mergedLinks]).slice(0, 6));
       }
       return;
     }
 
     if (event.event === 'end') {
-      const content = (event.content ?? aggregatedRef.current).trim();
+      const parsed = parseContent(event.content);
+      const content = (parsed.text || aggregatedRef.current).trim();
       if (content) {
         setMessages((previous) => [...previous, { role: 'assistant', content }]);
-        const parsed = extractLinks(content);
-        const merged = dedupeLinks([...(event.links ?? []), ...parsed]).slice(0, 6);
+        const linksFromText = extractLinks(content);
+        const merged = dedupeLinks([...(event.links ?? []), ...(parsed.links ?? []), ...linksFromText]).slice(0, 6);
         setAiLinks(merged);
       }
       setStreamingContent('');

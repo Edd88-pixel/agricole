@@ -55,6 +55,8 @@ const wrapSupabaseCall = async (fn, options = {}) => {
 const tables = {
   diagnoses: 'diagnoses',
   knowledge: 'kb_articles',
+  knowledgeConversations: 'kb_conversations',
+  knowledgeMessages: 'kb_messages',
   knowledgeEvents: 'kb_events',
   profiles: 'users_profiles',
   feedback: 'diagnosis_feedback'
@@ -382,6 +384,22 @@ export const supabaseService = {
     await wrapSupabaseCall(
       () => supabase().from(tables.knowledgeEvents).insert(payload),
       { context: `Failed to publish knowledge event${event?.event ? ` (${event.event})` : ''}` }
+    );
+  },
+
+  async ensureKnowledgeConversation(conversationId, userId, { title } = {}) {
+    ensurePresent(conversationId, 'Conversation id is required');
+    ensurePresent(userId, 'User id is required to create a conversation');
+
+    await wrapSupabaseCall(
+      () =>
+        supabase()
+          .from(tables.knowledgeConversations)
+          .upsert(
+            { id: conversationId, user_id: userId, ...(title ? { title } : {}) },
+            { onConflict: 'id', ignoreDuplicates: true }
+          ),
+      { context: 'Failed to ensure knowledge conversation exists' }
     );
   },
 

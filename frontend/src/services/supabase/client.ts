@@ -1,8 +1,29 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { appConfig } from '@/services/config';
+import { getStoredTokens } from '../authTokens';
 
 let cachedClient: SupabaseClient | null = null;
 let configurationWarningEmitted = false;
+const isBrowser = typeof window !== 'undefined';
+
+const applyAuthTokens = async (client: SupabaseClient) => {
+  const tokens = getStoredTokens();
+  if (tokens?.accessToken) {
+    // Ensure realtime uses the user JWT immediately
+    client.realtime.setAuth(tokens.accessToken);
+  }
+  if (tokens?.accessToken && tokens?.refreshToken) {
+    const { error } = await client.auth.setSession({
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken
+    });
+    if (error) {
+      console.warn('Failed to sync Supabase auth session', error.message);
+    }
+    return;
+  }
+  await client.auth.signOut();
+};
 
 const getSupabaseConfig = () => {
   const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || '';
@@ -33,6 +54,17 @@ export const getSupabaseClient = (): SupabaseClient | null => {
       }
     }
   });
+
+  if (isBrowser) {
+    const client = cachedClient;
+    // Apply tokens synchronously for Realtime, then sync full session
+    void applyAuthTokens(client);
+    const handleTokensChanged = () => {
+      void applyAuthTokens(client);
+    };
+    window.addEventListener('agricole-auth-tokens-changed', handleTokensChanged);
+    window.addEventListener('storage', handleTokensChanged);
+  }
 
   return cachedClient;
 };

@@ -142,6 +142,9 @@ export const runKnowledgeChat = async (req, res, next) => {
       .map((item) => ({ role: item.role.trim(), content: item.content.trim() }));
     const boundedHistory = clampArray(history, 20);
     const owner = req.user?.id;
+    if (!owner) {
+      throw buildHttpError('Authentication required to start a knowledge conversation', 401);
+    }
     const files = clampArray(req.files || [], 5);
 
     let uploadResult;
@@ -176,6 +179,11 @@ export const runKnowledgeChat = async (req, res, next) => {
 
     const conversationId = toNonEmptyString(req.body?.conversationId) || randomUUID();
     const messageId = randomUUID();
+    const userId = toNonEmptyString(owner) || owner;
+
+    await supabaseService.ensureKnowledgeConversation(conversationId, userId, {
+      title: prompt.slice(0, 80)
+    });
 
     res.status(202).json({ data: { status: 'queued', conversationId, messageId } });
 

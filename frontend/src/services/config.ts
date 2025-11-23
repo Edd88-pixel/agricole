@@ -13,8 +13,12 @@ const getEnvValue = (key: string, fallback?: string) => {
 export const appConfig = {
   apiBaseUrl: getEnvValue('VITE_API_BASE_URL', 'http://localhost:4000'),
   gemini: {
-    // Modèle par défaut demandé: gemini-2.5-flash
+    // Modele par defaut demande: gemini-2.5-flash
     model: getEnvValue('VITE_GEMINI_MODEL', 'gemini-2.5-flash')
+  },
+  supabase: {
+    url: getEnvValue('VITE_SUPABASE_URL'),
+    anonKey: getEnvValue('VITE_SUPABASE_ANON_KEY')
   }
 } as const;
 
