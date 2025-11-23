@@ -376,8 +376,62 @@ export const supabaseService = {
   },
 
   async publishKnowledgeEvent(event) {
+    const normalizeContent = (rawContent, rawLinks) => {
+      let content = rawContent;
+      let links = rawLinks;
+
+      if (typeof rawContent === 'string') {
+        const candidates = [];
+
+        const tryParse = (value) => {
+          const trimmed = (value || '').trim();
+          if (!trimmed || trimmed === '[DONE]') return;
+          const withoutDataPrefix = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
+          if (!withoutDataPrefix || withoutDataPrefix === '[DONE]') return;
+          try {
+            const parsed = JSON.parse(withoutDataPrefix);
+            candidates.push(parsed);
+          } catch {
+            // ignore
+          }
+        };
+
+        // Try full string and line-by-line (SSE chunks often include "data: ...")
+        tryParse(rawContent);
+        rawContent
+          .split('\n')
+          .map((line) => line.trim())
+          .forEach((line) => tryParse(line));
+
+        const pickContentFromParsed = (parsed) => {
+          if (typeof parsed === 'string') return parsed;
+          if (!parsed || typeof parsed !== 'object') return null;
+          const candidate = parsed.message ?? parsed.content ?? parsed.text ?? null;
+          if (typeof candidate === 'string') return candidate;
+          return null;
+        };
+
+        for (const parsed of candidates) {
+          const candidateContent = pickContentFromParsed(parsed);
+          if (candidateContent) {
+            content = candidateContent;
+            if (Array.isArray(parsed.links)) {
+              links = [...(links ?? []), ...parsed.links];
+            }
+            break;
+          }
+        }
+      }
+
+      return { content, links };
+    };
+
+    const { content, links } = normalizeContent(event?.content, event?.links);
+
     const payload = {
       ...event,
+      content,
+      links,
       created_at: event?.created_at ?? new Date().toISOString()
     };
 
