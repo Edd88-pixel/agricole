@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+npm-debug.log
+*.log
+.env
+.env.*
+.git
+tmp
+supabase/.branches
+supabase/.temp

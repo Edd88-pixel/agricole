@@ -80,6 +80,25 @@ Ouvrez deux terminaux :
   NODE_ENV=production npm start
   ```
 
+## Deploiement Docker
+- Prerequis : Docker + Docker Compose. Preparer `backend/.env` (copie de `backend/.env.example` avec vos cles). Les variables VITE_* du frontend sont passees au build via Docker Compose ou via export avant la commande.
+- Lancer la stack :
+  ```bash
+  docker compose up --build
+  ```
+  Frontend : `http://localhost:8080`, API : `http://localhost:4000` (`/api/health` pour tester).
+- Personnaliser les variables compilees du frontend (API, Supabase...) :
+  ```bash
+  VITE_API_BASE_URL=http://localhost:4000 \
+  VITE_SUPABASE_URL=https://<project>.supabase.co \
+  VITE_SUPABASE_ANON_KEY=<anon-key> \
+  VITE_GEMINI_MODEL=gemini-2.5-flash \
+  docker compose up --build
+  # ou: docker compose --env-file .env.docker up --build
+  ```
+- Commandes utiles : `docker compose up -d`, `docker compose logs -f backend`, `docker compose down`.
+- Le frontend nginx expose aussi un proxy `/api` vers le service backend sur le reseau Docker. Gardez `VITE_API_BASE_URL` pointe vers un hote accessible par le navigateur (ex. `http://localhost:4000` ou `http://localhost:8080` si vous utilisez le proxy). Le backend a CORS permissif si vous restez en cross-origin.
+
 ## Vérification manuelle (prod-like)
 1. Démarrer le backend sur le port 4000 : `NODE_ENV=production npm start`.
 2. Démarrer le frontend en mode preview : `npm run preview -- --host --port 4173` (dans `frontend/`).
