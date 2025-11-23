@@ -12,9 +12,10 @@ const mapSupabaseError = (error, context) => {
 
   const status = typeof error.status === 'number' && error.status >= 400 ? error.status : 502;
   const detail = error?.message ? `: ${error.message}` : '';
+  const hint = error?.details ? ` (${error.details})` : '';
   const message =
     status >= 500
-      ? `${context || 'Unexpected service error'}${detail}`
+      ? `${context || 'Unexpected service error'}${detail}${hint}`
       : error.message || context || 'Request failed';
 
   return buildHttpError(message, status);
@@ -380,7 +381,7 @@ export const supabaseService = {
 
     await wrapSupabaseCall(
       () => supabase().from(tables.knowledgeEvents).insert(payload),
-      { context: 'Failed to publish knowledge event' }
+      { context: `Failed to publish knowledge event${event?.event ? ` (${event.event})` : ''}` }
     );
   },
 
