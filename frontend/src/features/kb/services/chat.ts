@@ -5,12 +5,10 @@ type ChatMessage = {
   content: string;
 };
 
-type KnowledgeResponse = {
-  id: string;
-  createdAt: string;
-  message: string;
-  images: string[];
-  links?: { title?: string; url: string }[];
+type KnowledgeConversationResponse = {
+  conversationId: string;
+  messageId: string;
+  status: 'queued' | 'streaming';
 };
 
 type KnowledgeRequest = {
@@ -19,11 +17,11 @@ type KnowledgeRequest = {
   files?: File[];
 };
 
-export const sendKnowledgeMessage = async ({
+export const startKnowledgeConversation = async ({
   prompt,
   history,
   files = []
-}: KnowledgeRequest): Promise<KnowledgeResponse> => {
-  const response = await invokeKnowledgeChat<KnowledgeResponse>({ prompt, history, files });
+}: KnowledgeRequest): Promise<KnowledgeConversationResponse> => {
+  const response = await invokeKnowledgeChat<KnowledgeConversationResponse>({ prompt, history, files });
   return response;
 };

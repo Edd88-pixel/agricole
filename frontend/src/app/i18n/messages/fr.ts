@@ -166,6 +166,7 @@ const fr = {
     addPhoto: 'Ajouter des photos',
     send: 'Envoyer',
     typing: 'Analyse en cours…',
+    connecting: 'Connexion au service en temps réel…',
     error: 'L’assistant est momentanément indisponible.',
     recommended: 'Ressources recommandées'
   },

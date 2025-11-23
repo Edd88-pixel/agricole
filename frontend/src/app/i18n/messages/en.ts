@@ -166,6 +166,7 @@ const en = {
     addPhoto: 'Add photos',
     send: 'Send',
     typing: 'Analysing…',
+    connecting: 'Connecting to the realtime assistant…',
     error: 'The assistant is temporarily unavailable.',
     recommended: 'Recommended resources'
   },
