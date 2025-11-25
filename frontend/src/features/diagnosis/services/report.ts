@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import type { PDFFont } from 'pdf-lib';
 import type { DiagnosisResult } from '../types/diagnosis';
 
 const BASE_MARGIN = 48;
@@ -64,13 +65,12 @@ const fetchImageBytes = async (url: string): Promise<{ bytes: Uint8Array; mime: 
 
 const drawKeyValue = (
   page: ReturnType<PDFDocument['addPage']>,
-  font: any,
-  boldFont: any,
+  font: PDFFont,
+  boldFont: PDFFont,
   label: string,
   value: string,
   x: number,
-  y: number,
-  width: number
+  y: number
 ) => {
   const labelText = `${label.toUpperCase()}`;
   page.drawText(labelText, {
@@ -116,7 +116,6 @@ export const generateDiagnosisReport = async (
     timeStyle: 'short'
   });
 
-  // Header
   page.drawRectangle({
     x: BASE_MARGIN,
     y: height - 120,
@@ -141,7 +140,6 @@ export const generateDiagnosisReport = async (
     color: rgb(0.85, 0.94, 0.89)
   });
 
-  // Summary block
   const summaryY = height - 160;
   page.drawText(result.primary.label, {
     x: BASE_MARGIN,
@@ -165,35 +163,15 @@ export const generateDiagnosisReport = async (
     color: rgb(0.16, 0.19, 0.2)
   });
 
-  // Metadata columns
   const columnWidth = (width - BASE_MARGIN * 2 - 24) / 2;
   const metaTop = summaryY - LINE_HEIGHT * 4;
-  drawKeyValue(page, regularFont, boldFont, 'Culture', result.crop, BASE_MARGIN, metaTop, columnWidth);
-  drawKeyValue(page, regularFont, boldFont, 'Stade', result.stage, BASE_MARGIN + columnWidth + 24, metaTop, columnWidth);
-  drawKeyValue(
-    page,
-    regularFont,
-    boldFont,
-    'Symptômes observés',
-    result.symptoms.join('\n'),
-    BASE_MARGIN,
-    metaTop - LINE_HEIGHT * 3,
-    columnWidth
-  );
-  drawKeyValue(
-    page,
-    regularFont,
-    boldFont,
-    'Contexte',
-    result.context,
-    BASE_MARGIN + columnWidth + 24,
-    metaTop - LINE_HEIGHT * 3,
-    columnWidth
-  );
+  drawKeyValue(page, regularFont, boldFont, 'Culture', result.crop, BASE_MARGIN, metaTop);
+  drawKeyValue(page, regularFont, boldFont, 'Stade', result.stage, BASE_MARGIN + columnWidth + 24, metaTop);
+  drawKeyValue(page, regularFont, boldFont, 'Symptomes observes', result.symptoms.join('\n'), BASE_MARGIN, metaTop - LINE_HEIGHT * 3);
+  drawKeyValue(page, regularFont, boldFont, 'Contexte', result.context, BASE_MARGIN + columnWidth + 24, metaTop - LINE_HEIGHT * 3);
 
-  // Actions checklist
   const actionsY = metaTop - LINE_HEIGHT * 7;
-  page.drawText('Actions recommandées', {
+  page.drawText('Actions recommandees', {
     x: BASE_MARGIN,
     y: actionsY,
     size: 14,
@@ -206,10 +184,14 @@ export const generateDiagnosisReport = async (
       const a = action as Record<string, unknown>;
       const label = typeof a.label === 'string' ? a.label : undefined;
       const description = typeof a.description === 'string' ? a.description : undefined;
-      if (label && description) return `${label} — ${description}`;
+      if (label && description) return `${label} - ${description}`;
       if (label) return label;
       if (description) return description;
-      try { return JSON.stringify(a); } catch { return String(action); }
+      try {
+        return JSON.stringify(a);
+      } catch {
+        return String(action);
+      }
     }
     return String(action ?? '');
   };
@@ -234,7 +216,7 @@ export const generateDiagnosisReport = async (
   let currentY = actionsY - LINE_HEIGHT * (result.actions.length + 2);
 
   if (result.alternatives.length > 0) {
-    page.drawText('Hypothèses alternatives', {
+    page.drawText('Hypotheses alternatives', {
       x: BASE_MARGIN,
       y: currentY,
       size: 14,
@@ -244,7 +226,7 @@ export const generateDiagnosisReport = async (
     currentY -= LINE_HEIGHT;
     result.alternatives.forEach((item) => {
       const score = (item.confidence * 100).toFixed(0);
-      const text = `${item.label} — ${score}%`;
+      const text = `${item.label} - ${score}%`;
       page.drawText(text, {
         x: BASE_MARGIN,
         y: currentY,
@@ -278,9 +260,7 @@ export const generateDiagnosisReport = async (
       if (!resource) continue;
 
       const { bytes, mime } = resource;
-      const imageEmbed = mime.includes('png')
-        ? await document.embedPng(bytes)
-        : await document.embedJpg(bytes);
+      const imageEmbed = mime.includes('png') ? await document.embedPng(bytes) : await document.embedJpg(bytes);
 
       const scale = Math.min(maxWidth / imageEmbed.width, 1);
       const displayWidth = imageEmbed.width * scale;

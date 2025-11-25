@@ -45,29 +45,24 @@ const HistoryReport = () => {
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-brand-text">Actions</h2>
         <Checklist
-          items={(entry.actions ?? []).map((action, index) => {
-            const asString =
-              typeof action === 'string'
-                ? action
-                : action && typeof action === 'object'
-                ? [
-                    typeof (action as any).label === 'string' ? (action as any).label : undefined,
-                    typeof (action as any).description === 'string' ? (action as any).description : undefined
-                  ]
-                    .filter(Boolean)
-                    .join(' — ')
-                : String(action ?? '');
-            return { id: `${entry.id}-${index}`, label: asString };
-          })}
+          items={(entry.actions ?? []).map((action, index) => ({
+            id: `${entry.id}-${index}`,
+            label: typeof action === 'string' ? action : String(action ?? '')
+          }))}
         />
       </section>
       {entry.images.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-brand-text">{t('diagnosis.mediaTitle', 'Images analysées')}</h2>
+          <h2 className="text-sm font-semibold text-brand-text">{t('diagnosis.mediaTitle', 'Images analysees')}</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {entry.images.map((image) => (
               <figure key={image} className="overflow-hidden rounded-2xl border border-brand-secondary/10 bg-brand-background">
-                <img src={image} alt={t('diagnosis.mediaAlt', { defaultValue: 'Photo analysée' }) ?? 'Photo analysée'} className="h-40 w-full object-cover" loading="lazy" />
+                <img
+                  src={image}
+                  alt={t('diagnosis.mediaAlt', { defaultValue: 'Photo analysee' }) ?? 'Photo analysee'}
+                  className="h-40 w-full object-cover"
+                  loading="lazy"
+                />
               </figure>
             ))}
           </div>

@@ -48,7 +48,8 @@ describe('generateDiagnosisReport', () => {
 
   it('creates a PDF blob with minimal payload', async () => {
     const blob = await generateDiagnosisReport(sampleResult, { locale: 'fr-FR' });
-    expect(blob instanceof (globalThis as any).Blob).toBe(true);
+    const BlobCtor = (globalThis as unknown as { Blob: typeof Blob }).Blob;
+    expect(blob instanceof BlobCtor).toBe(true);
     expect(blob.type).toBe('application/pdf');
     expect(blob.size).toBeGreaterThan(500);
   });
