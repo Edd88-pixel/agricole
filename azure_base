@@ -1,0 +1,137 @@
+Guide rapide (Azure) pour déployer backend + frontend déjà conteneurisés.
+
+Hypothèses
+- Tu as deux images Docker locales : backend et frontend.
+- Le backend écoute sur un port HTTP (ex. 8080) et n’a pas besoin de stateful storage.
+- Le frontend est une SPA/SSR conteneurisée (sinon considère Azure Static Web Apps).
+- Tu utilises Azure CLI sur PowerShell, avec droits suffisants.
+
+Étape 0 — Installer/mettre à jour l’outil
+- Installer Docker Desktop et Azure CLI : https://learn.microsoft.com/cli/azure/install-azure-cli
+- Mettre à jour : `az upgrade`
+
+Étape 1 — Connexion + abonnement
+```powershell
+az login
+az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
+```
+
+Étape 2 — Variables de travail (à adapter)
+```powershell
+$LOCATION="westeurope"
+$RG="rg-agricole"
+$ACR="acragricole$((Get-Random -Maximum 9999))"   # doit être unique globalement
+$PLAN="plan-agricole"
+$WEB_BACK="app-back-agricole"
+$WEB_FRONT="app-front-agricole"
+$BACK_IMAGE="backend:latest"      # image locale
+$FRONT_IMAGE="frontend:latest"    # image locale
+$BACK_PORT=8080                   # port exposé par le backend
+```
+
+Étape 3 — Créer le Resource Group
+```powershell
+az group create -n $RG -l $LOCATION
+```
+
+Étape 4 — Créer un ACR (registre privé) + login
+```powershell
+az acr create -n $ACR -g $RG --sku Basic --admin-enabled false
+az acr login -n $ACR
+```
+
+Étape 5 — Tagger et pousser les images dans l’ACR
+```powershell
+$ACR_LOGIN="$ACR.azurecr.io"
+docker tag $BACK_IMAGE "$ACR_LOGIN/backend:latest"
+docker tag $FRONT_IMAGE "$ACR_LOGIN/frontend:latest"
+docker push "$ACR_LOGIN/backend:latest"
+docker push "$ACR_LOGIN/frontend:latest"
+```
+
+Étape 6 — (Optionnel mais recommandé) Créer des credentials d’extraction (si App Service)
+```powershell
+$ACR_USER=$(az acr credential show -n $ACR --query username -o tsv)
+$ACR_PWD=$(az acr credential show -n $ACR --query passwords[0].value -o tsv)
+```
+
+Étape 7 — Créer un App Service Plan (Linux, B1 au minimum)
+```powershell
+az appservice plan create -g $RG -n $PLAN --sku B1 --is-linux
+```
+
+Étape 8 — Déployer le backend (Web App for Containers)
+```powershell
+az webapp create `
+  -g $RG -p $PLAN -n $WEB_BACK `
+  -i "$ACR_LOGIN/backend:latest"
+
+# Paramétrer l’ACR pull (nécessaire si admin-disabled)
+az webapp config container set `
+  -g $RG -n $WEB_BACK `
+  --docker-custom-image-name "$ACR_LOGIN/backend:latest" `
+  --docker-registry-server-url "https://$ACR_LOGIN" `
+  --docker-registry-server-user $ACR_USER `
+  --docker-registry-server-password $ACR_PWD
+
+# Définir les variables d’environnement du backend
+az webapp config appsettings set -g $RG -n $WEB_BACK --settings `
+  WEBSITES_PORT=$BACK_PORT `
+  NODE_ENV=production `
+  SUPABASE_URL="<supabase_url>" `
+  SUPABASE_KEY="<supabase_anon_key>" `
+  (ajoute ici toutes les variables sensibles nécessaires)
+```
+
+Étape 9 — Déployer le frontend (Web App for Containers)
+```powershell
+az webapp create `
+  -g $RG -p $PLAN -n $WEB_FRONT `
+  -i "$ACR_LOGIN/frontend:latest"
+
+az webapp config container set `
+  -g $RG -n $WEB_FRONT `
+  --docker-custom-image-name "$ACR_LOGIN/frontend:latest" `
+  --docker-registry-server-url "https://$ACR_LOGIN" `
+  --docker-registry-server-user $ACR_USER `
+  --docker-registry-server-password $ACR_PWD
+
+# Exemple d’app settings pour le frontend
+az webapp config appsettings set -g $RG -n $WEB_FRONT --settings `
+  WEBSITES_PORT=80 `
+  NODE_ENV=production `
+  VITE_API_URL="https://$WEB_BACK.azurewebsites.net"  # URL publique du backend
+```
+
+Étape 10 — Vérifier le statut et les logs
+```powershell
+az webapp show -g $RG -n $WEB_BACK --query state
+az webapp log tail -g $RG -n $WEB_BACK
+az webapp log tail -g $RG -n $WEB_FRONT
+```
+
+Étape 11 — HTTPS et domaine custom (optionnel)
+- Ajouter un domaine custom : `az webapp config hostname add -g $RG -n $WEB_FRONT --hostname <ton.domaine>`
+- Ajouter un certificat (App Service Managed Certificate gratuit possible) :
+  `az webapp config ssl create -g $RG -n $WEB_FRONT --hostname <ton.domaine>`
+- Lier le certif : `az webapp config ssl bind -g $RG -n $WEB_FRONT --certificate-thumbprint <THUMB> --ssl-type SNI`
+
+Étape 12 — Mise à jour continue
+- Rebuild localement puis `docker push "$ACR_LOGIN/backend:latest"` (ou tag versionné).
+- Redémarrer l’app pour tirer la nouvelle image :
+  `az webapp restart -g $RG -n $WEB_BACK`
+- Idem pour le frontend.
+
+Bonnes pratiques rapides
+- Utilise des tags versionnés (ex: v1.0.0) et garde :latest seulement pour dev.
+- Stocke secrets uniquement dans App Settings ou Azure Key Vault (puis référence Key Vault).
+- Active les logs et Application Insights si besoin de télémétrie :
+  `az monitor app-insights component create -g $RG -l $LOCATION -a "appi-agricole"` puis
+  `az webapp config appsettings set -g $RG -n $WEB_BACK --settings APPINSIGHTS_INSTRUMENTATIONKEY=<key>`
+- Vérifie la variable `WEBSITES_PORT` = port exposé dans l’image Docker (sinon 8080/80).
+- Pour SSL correct sur backend, renforce CORS et force HTTPS dans ton app.
+
+Nettoyage (si besoin)
+```powershell
+az group delete -n $RG --yes --no-wait
+```
