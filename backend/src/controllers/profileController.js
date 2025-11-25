@@ -23,12 +23,31 @@ export const createProfile = async (req, res, next) => {
       throw buildHttpError('Unauthorized', 401);
     }
 
+    const firstName = toNonEmptyString(req.body?.first_name ?? req.body?.firstName);
+    const lastName = toNonEmptyString(req.body?.last_name ?? req.body?.lastName);
+    const email = toNonEmptyString(req.body?.email ?? req.user?.email);
+    const emailName = email ? email.split('@')[0] || email : '';
+    const displayName =
+      toNonEmptyString(req.body?.display_name ?? req.body?.displayName) ||
+      toNonEmptyString(req.user?.user_metadata?.full_name) ||
+      [firstName, lastName].filter(Boolean).join(' ') ||
+      toNonEmptyString(emailName) ||
+      'Producer';
+    const avatarPath = toNonEmptyString(req.body?.avatar_path ?? req.body?.avatarPath) || undefined;
+    const locale = toNonEmptyString(req.body?.locale ?? req.user?.user_metadata?.locale) || undefined;
+    const onboardingFlag = req.body?.onboarding_completed ?? req.body?.onboardingCompleted;
+    const onboardingCompleted = typeof onboardingFlag === 'boolean' ? onboardingFlag : undefined;
+
     const payload = {
       id: userId,
-      first_name: toNonEmptyString(req.body?.first_name) || undefined,
-      last_name: toNonEmptyString(req.body?.last_name) || undefined,
-      full_name: toNonEmptyString(req.body?.full_name) || undefined,
+      email: email || undefined,
+      display_name: displayName,
+      first_name: firstName || undefined,
+      last_name: lastName || undefined,
+      avatar_path: avatarPath,
+      locale,
       location: toNonEmptyString(req.body?.location) || undefined,
+      onboarding_completed: onboardingCompleted,
       objectives: toStringArray(req.body?.objectives),
       crops: toStringArray(req.body?.crops)
     };
@@ -47,9 +66,22 @@ export const updateProfile = async (req, res, next) => {
     }
 
     const updates = {};
-    if (isNonEmptyString(req.body?.first_name)) updates.first_name = toNonEmptyString(req.body.first_name);
-    if (isNonEmptyString(req.body?.last_name)) updates.last_name = toNonEmptyString(req.body.last_name);
-    if (isNonEmptyString(req.body?.full_name)) updates.full_name = toNonEmptyString(req.body.full_name);
+    const firstName = toNonEmptyString(req.body?.first_name ?? req.body?.firstName);
+    if (firstName) updates.first_name = firstName;
+
+    const lastName = toNonEmptyString(req.body?.last_name ?? req.body?.lastName);
+    if (lastName) updates.last_name = lastName;
+
+    const displayName = toNonEmptyString(req.body?.display_name ?? req.body?.displayName);
+    if (displayName) updates.display_name = displayName;
+
+    const avatarPath = req.body?.avatar_path ?? req.body?.avatarPath;
+    if (isNonEmptyString(avatarPath)) {
+      updates.avatar_path = toNonEmptyString(avatarPath);
+    } else if (avatarPath === null) {
+      updates.avatar_path = null;
+    }
+
     if (isNonEmptyString(req.body?.location)) updates.location = toNonEmptyString(req.body.location);
 
     const locale = toNonEmptyString(req.body?.locale);
