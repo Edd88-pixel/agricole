@@ -111,6 +111,12 @@ export const saveOnboarding = async (req, res, next) => {
       throw buildHttpError('Unauthorized', 401);
     }
 
+    if (req.body?.skip === true) {
+      const data = await supabaseService.updateProfile(userId, { onboarding_completed: true });
+      res.json({ data });
+      return;
+    }
+
     const onboardingPayload = {
       objectives: toStringArray(req.body?.objectives),
       location: toNonEmptyString(req.body?.location),

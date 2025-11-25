@@ -20,6 +20,7 @@ export type OnboardingPayload = {
   objectives: string;
   location: string;
   crops: string[];
+  skip?: boolean;
 };
 
 export type ProfileInsert = {

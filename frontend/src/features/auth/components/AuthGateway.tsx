@@ -38,6 +38,7 @@ const signUpSchema = signInSchema
 type SignUpValues = z.infer<typeof signUpSchema>;
 
 type AuthMode = 'signin' | 'signup';
+type SignUpStatus = 'idle' | 'submitting' | 'awaiting-verification' | 'success';
 
 const AuthGateway = () => {
   const { t, i18n } = useTranslation();
@@ -45,9 +46,12 @@ const AuthGateway = () => {
   const [mode, setMode] = useState<AuthMode>('signin');
   const [error, setError] = useState<string | null>(null);
   const [signInLoading, setSignInLoading] = useState(false);
-  const [signUpStatus, setSignUpStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
+  const [signUpStatus, setSignUpStatus] = useState<SignUpStatus>('idle');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const noticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const verificationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const signInForm = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: '', password: '' }
@@ -70,8 +74,29 @@ const AuthGateway = () => {
       if (avatarPreview) {
         URL.revokeObjectURL(avatarPreview);
       }
+      if (noticeTimeoutRef.current) {
+        clearTimeout(noticeTimeoutRef.current);
+      }
+      if (verificationIntervalRef.current) {
+        clearInterval(verificationIntervalRef.current);
+      }
     };
   }, [avatarPreview]);
+
+  const showNotice = (message: string, durationMs = 5000) => {
+    setNotice(message);
+    if (noticeTimeoutRef.current) {
+      clearTimeout(noticeTimeoutRef.current);
+    }
+    noticeTimeoutRef.current = setTimeout(() => setNotice(null), durationMs);
+  };
+
+  const clearVerificationInterval = () => {
+    if (verificationIntervalRef.current) {
+      clearInterval(verificationIntervalRef.current);
+      verificationIntervalRef.current = null;
+    }
+  };
 
   const onSubmitSignIn = signInForm.handleSubmit(async (values) => {
     setError(null);
@@ -79,32 +104,23 @@ const AuthGateway = () => {
     try {
       await signIn(values.email, values.password);
     } catch (authError) {
-      setError((authError as Error).message);
+      setError(t('auth.signInError', 'Connexion impossible. Verifiez vos identifiants ou la verification email.'));
     }
     setSignInLoading(false);
   });
 
   const onSubmitSignUp = signUpForm.handleSubmit(async (values) => {
     setError(null);
+    setNotice(null);
     setSignUpStatus('submitting');
     const avatarFiles = values.avatar as FileList | undefined;
     const avatarFile = avatarFiles && avatarFiles.length > 0 ? avatarFiles[0] : null;
 
-    let user = null;
-    try {
-      const result = await signUp({
-        email: values.email,
-        password: values.password,
-        firstName: values.firstName,
-        lastName: values.lastName
-      });
-      user = result.user;
-    } catch (authError) {
-      setError((authError as Error).message);
-      setSignUpStatus('idle');
-      return;
-    }
-    if (user) {
+    const email = values.email;
+    const password = values.password;
+
+    const completeProfile = async (currentUser: { id: string } | null) => {
+      if (!currentUser) return;
       try {
         const locale = (i18n.language.slice(0, 2) as SupportedLocale) === 'en' ? 'en' : 'fr';
         let avatarPath: string | undefined;
@@ -115,6 +131,7 @@ const AuthGateway = () => {
         const existing = await fetchProfile();
         if (!existing) {
           await createProfile({
+            id: currentUser.id,
             email: values.email,
             displayName,
             firstName: values.firstName,
@@ -135,7 +152,61 @@ const AuthGateway = () => {
       } catch (profileError) {
         console.error('Unable to initialise profile after sign-up', profileError);
         setSignUpStatus('idle');
+        setError(t('auth.profileInitError', "Impossible de creer le profil avec l'avatar"));
+        return;
       }
+      setSignUpStatus('success');
+      showNotice(t('auth.verificationSuccess', 'Email verifie et profil cree. Redirection...'));
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    };
+
+    let user = null;
+    let accessToken = null;
+    try {
+      const result = await signUp({
+        email,
+        password,
+        firstName: values.firstName,
+        lastName: values.lastName
+      });
+      user = result.user;
+      accessToken = result.accessToken ?? null;
+    } catch (authError) {
+      setError(t('auth.signUpError', 'Impossible de creer le compte. Verifiez vos informations.'));
+      setSignUpStatus('idle');
+      return;
+    }
+
+    // If we have a session token, finish immediately.
+    if (accessToken) {
+      await completeProfile(user);
+    } else {
+      // Otherwise, email verification is required.
+      setSignUpStatus('awaiting-verification');
+      showNotice(
+        t(
+          'auth.verifyEmailNotice',
+          'Un email de verification vous a ete envoye. Cliquez sur le lien puis revenez; nous finaliserons votre profil.'
+        ),
+        5000
+      );
+
+      const pollForVerification = async () => {
+        try {
+          const signInResult = await signIn(email, password);
+          clearVerificationInterval();
+          await completeProfile(signInResult.user);
+        } catch (pollError) {
+          // stay quiet until email is confirmed
+        }
+      };
+
+      clearVerificationInterval();
+      verificationIntervalRef.current = setInterval(pollForVerification, 5000);
+      await pollForVerification();
+      return;
     }
 
     signInForm.reset({ email: values.email, password: values.password });
@@ -152,7 +223,6 @@ const AuthGateway = () => {
       URL.revokeObjectURL(avatarPreview);
       setAvatarPreview(null);
     }
-    setSignUpStatus('success');
     setMode('signin');
   });
 
@@ -224,7 +294,7 @@ const AuthGateway = () => {
                   <input
                     type="email"
                     className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-4 text-sm shadow-inner"
-                  disabled={signInLoading || signUpStatus === 'submitting'}
+                  disabled={signInLoading || signUpStatus === 'submitting' || signUpStatus === 'awaiting-verification'}
                   {...emailRegister}
                     autoComplete="email"
                   />
@@ -237,7 +307,7 @@ const AuthGateway = () => {
                   <input
                     type="password"
                     className="focus-ring w-full rounded-2xl border border-subtle bg-brand-surface/80 p-4 text-sm shadow-inner"
-                  disabled={signInLoading || signUpStatus === 'submitting'}
+                  disabled={signInLoading || signUpStatus === 'submitting' || signUpStatus === 'awaiting-verification'}
                   {...passwordRegister}
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                   />
@@ -278,7 +348,12 @@ const AuthGateway = () => {
                               }
                             }}
                           />
-                          <Button type="button" variant="secondary" onClick={() => avatarInputRef.current?.click()} disabled={signUpStatus === 'submitting'}>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => avatarInputRef.current?.click()}
+                            disabled={signUpStatus === 'submitting' || signUpStatus === 'awaiting-verification'}
+                          >
                             {t('auth.selectAvatar')}
                           </Button>
                         </div>
@@ -332,12 +407,23 @@ const AuthGateway = () => {
                 </>
               )}
               {error && <p className="rounded-xl bg-brand-danger/10 p-3 text-sm text-brand-danger">{error}</p>}
+              {notice && <p className="rounded-xl bg-brand-secondary/10 p-3 text-sm text-brand-secondary">{notice}</p>}
               {signUpStatus === 'success' && (
                 <p className="rounded-xl bg-brand-secondary/10 p-3 text-sm text-brand-secondary">
-                  {t('settings.profileSaved', 'Profil mis à jour')}
+                  {t('settings.profileSaved', 'Profil mis ?? jour')}
                 </p>
               )}
-              <Button type="submit" size="lg" className="w-full" isLoading={mode === 'signin' ? signInLoading : signUpStatus === 'submitting'}>
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                isLoading={
+                  mode === 'signin'
+                    ? signInLoading
+                    : signUpStatus === 'submitting' || signUpStatus === 'awaiting-verification'
+                }
+                disabled={signUpStatus === 'awaiting-verification'}
+              >
                 {mode === 'signin' ? t('auth.signInAction') : t('auth.signUpAction')}
               </Button>
             </form>
@@ -368,3 +454,4 @@ const AuthGateway = () => {
 };
 
 export default AuthGateway;
+

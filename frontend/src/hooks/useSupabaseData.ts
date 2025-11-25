@@ -4,6 +4,7 @@ import type { HistoryEntry } from '@/features/history/types/history';
 import type { KnowledgeArticle } from '@/features/kb/types/article';
 import { fetchDiagnoses, insertDiagnosis, updateDiagnosisResolved, deleteDiagnosis, updateDiagnosisDetails } from '@/services/api/diagnosis';
 import { fetchKnowledgeArticles } from '@/services/api/knowledge';
+import { getAccessToken } from '@/services/authTokens';
 
 const MAX_HISTORY = 20;
 
@@ -18,6 +19,18 @@ export const useSupabaseData = () => {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
   const [articlesLoading, setArticlesLoading] = useState(true);
+  const [authToken, setAuthToken] = useState<string | undefined>(getAccessToken());
+
+  // React to auth token changes (sign-in / sign-out)
+  useEffect(() => {
+    const syncTokens = () => setAuthToken(getAccessToken());
+    window.addEventListener('storage', syncTokens);
+    window.addEventListener('agricole-auth-tokens-changed', syncTokens);
+    return () => {
+      window.removeEventListener('storage', syncTokens);
+      window.removeEventListener('agricole-auth-tokens-changed', syncTokens);
+    };
+  }, []);
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -45,9 +58,16 @@ export const useSupabaseData = () => {
   }, []);
 
   useEffect(() => {
+    if (!authToken) {
+      setHistory([]);
+      setArticles([]);
+      setHistoryLoading(false);
+      setArticlesLoading(false);
+      return;
+    }
     void loadHistory();
     void loadArticles();
-  }, [loadHistory, loadArticles]);
+  }, [authToken, loadArticles, loadHistory]);
 
   const addResultToHistory = useCallback(
     async (result: DiagnosisResult) => {

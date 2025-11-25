@@ -122,12 +122,7 @@ const OnboardingFlow = ({ onComplete }: Props) => {
             onClick={async () => {
               try {
                 setIsSubmitting(true);
-                const values = form.getValues();
-                const crops = values.cropsText
-                  .split(/[,;\n]+/)
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-                await onComplete({ objectives: values.objectives, location: values.location, crops });
+                await onComplete({ objectives: '', location: '', crops: [], skip: true });
               } finally {
                 setIsSubmitting(false);
               }
