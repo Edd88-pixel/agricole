@@ -2,8 +2,9 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { PDFFont } from 'pdf-lib';
 import type { DiagnosisResult } from '../types/diagnosis';
 
-const BASE_MARGIN = 48;
+const BASE_MARGIN = 56.7; // 20mm margins on A4
 const LINE_HEIGHT = 18;
+const PAGE_SIZE = { width: 595.28, height: 841.89 }; // A4 portrait in points
 
 const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
   const source = view.buffer;
@@ -63,33 +64,66 @@ const fetchImageBytes = async (url: string): Promise<{ bytes: Uint8Array; mime: 
   }
 };
 
-const drawKeyValue = (
-  page: ReturnType<PDFDocument['addPage']>,
-  font: PDFFont,
-  boldFont: PDFFont,
-  label: string,
-  value: string,
-  x: number,
-  y: number
-) => {
-  const labelText = `${label.toUpperCase()}`;
-  page.drawText(labelText, {
-    x,
-    y,
-    size: 10,
-    font: boldFont,
-    color: rgb(0.07, 0.34, 0.24)
+const wrapText = (text: string, maxWidth: number, font: PDFFont, fontSize: number): string[] => {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = '';
+
+  words.forEach((word) => {
+    const testLine = current.length > 0 ? `${current} ${word}` : word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    if (testWidth <= maxWidth) {
+      current = testLine;
+    } else {
+      if (current.length > 0) lines.push(current);
+      current = word;
+    }
   });
-  const valueLines = value.split('\n');
-  valueLines.forEach((line, index) => {
+
+  if (current.length > 0) {
+    lines.push(current);
+  }
+
+  return lines;
+};
+
+const drawWrappedText = ({
+  page,
+  text,
+  x,
+  y,
+  font,
+  size,
+  color,
+  maxWidth,
+  lineHeight = LINE_HEIGHT
+}: {
+  page: ReturnType<PDFDocument['addPage']>;
+  text: string;
+  x: number;
+  y: number;
+  font: PDFFont;
+  size: number;
+  color: ReturnType<typeof rgb>;
+  maxWidth: number;
+  lineHeight?: number;
+}) => {
+  const lines = wrapText(text, maxWidth, font, size);
+  lines.forEach((line, index) => {
     page.drawText(line, {
       x,
-      y: y - LINE_HEIGHT - index * (LINE_HEIGHT - 2),
-      size: 10,
+      y: y - index * lineHeight,
+      size,
       font,
-      color: rgb(0.16, 0.19, 0.2)
+      color
     });
   });
+  return lines.length * lineHeight;
+};
+
+const measureKeyValueHeight = (value: string, font: PDFFont, maxWidth: number) => {
+  const valueLines = wrapText(value, maxWidth, font, 10);
+  return LINE_HEIGHT + valueLines.length * (LINE_HEIGHT - 2) + 2;
 };
 
 export type ReportOptions = {
@@ -102,9 +136,8 @@ export const generateDiagnosisReport = async (
   options: ReportOptions = {}
 ): Promise<Blob> => {
   const document = await PDFDocument.create();
-  let page = document.addPage([595.28, 841.89]);
-  const width = page.getWidth();
-  const height = page.getHeight();
+  let page = document.addPage([PAGE_SIZE.width, PAGE_SIZE.height]);
+  let currentY = page.getHeight() - BASE_MARGIN;
 
   const regularFont = await document.embedFont(StandardFonts.Helvetica);
   const boldFont = await document.embedFont(StandardFonts.HelveticaBold);
@@ -116,68 +149,115 @@ export const generateDiagnosisReport = async (
     timeStyle: 'short'
   });
 
-  page.drawRectangle({
-    x: BASE_MARGIN,
-    y: height - 120,
-    width: width - BASE_MARGIN * 2,
-    height: 72,
-    color: rgb(0.04, 0.45, 0.31)
-  });
+  const ensureSpace = (neededHeight: number) => {
+    if (currentY - neededHeight < BASE_MARGIN) {
+      page = document.addPage([PAGE_SIZE.width, PAGE_SIZE.height]);
+      currentY = page.getHeight() - BASE_MARGIN;
+    }
+  };
 
-  page.drawText(appName, {
-    x: BASE_MARGIN + 16,
-    y: height - 60,
-    size: 20,
-    font: boldFont,
-    color: rgb(1, 1, 1)
-  });
+  const drawHeader = () => {
+    const headerHeight = 80;
+    ensureSpace(headerHeight + 16);
+    const headerY = currentY - headerHeight;
+    page.drawRectangle({
+      x: BASE_MARGIN,
+      y: headerY,
+      width: page.getWidth() - BASE_MARGIN * 2,
+      height: headerHeight,
+      color: rgb(0.04, 0.45, 0.31)
+    });
+    page.drawText(appName, {
+      x: BASE_MARGIN + 16,
+      y: headerY + headerHeight - 28,
+      size: 20,
+      font: boldFont,
+      color: rgb(1, 1, 1)
+    });
+    page.drawText(formattedDate, {
+      x: BASE_MARGIN + 16,
+      y: headerY + headerHeight - 48,
+      size: 12,
+      font: regularFont,
+      color: rgb(0.85, 0.94, 0.89)
+    });
+    currentY = headerY - 24;
+  };
 
-  page.drawText(formattedDate, {
-    x: BASE_MARGIN + 16,
-    y: height - 82,
-    size: 12,
-    font: regularFont,
-    color: rgb(0.85, 0.94, 0.89)
-  });
+  const drawTitleBlock = () => {
+    ensureSpace(LINE_HEIGHT * 4);
+    page.drawText(result.primary.label, {
+      x: BASE_MARGIN,
+      y: currentY,
+      size: 18,
+      font: boldFont,
+      color: rgb(0.07, 0.34, 0.24)
+    });
+    currentY -= LINE_HEIGHT;
+    page.drawText(`Confiance ${(result.confidence * 100).toFixed(0)}%`, {
+      x: BASE_MARGIN,
+      y: currentY,
+      size: 12,
+      font: regularFont,
+      color: rgb(0.16, 0.19, 0.2)
+    });
+    currentY -= LINE_HEIGHT;
+    const descHeight = drawWrappedText({
+      page,
+      text: result.primary.description,
+      x: BASE_MARGIN,
+      y: currentY,
+      size: 11,
+      font: regularFont,
+      color: rgb(0.16, 0.19, 0.2),
+      maxWidth: page.getWidth() - BASE_MARGIN * 2
+    });
+    currentY -= descHeight + 12;
+  };
 
-  const summaryY = height - 160;
-  page.drawText(result.primary.label, {
-    x: BASE_MARGIN,
-    y: summaryY,
-    size: 18,
-    font: boldFont,
-    color: rgb(0.07, 0.34, 0.24)
-  });
-  page.drawText(`Confiance ${(result.confidence * 100).toFixed(0)}%`, {
-    x: BASE_MARGIN,
-    y: summaryY - LINE_HEIGHT,
-    size: 12,
-    font: regularFont,
-    color: rgb(0.16, 0.19, 0.2)
-  });
-  page.drawText(result.primary.description, {
-    x: BASE_MARGIN,
-    y: summaryY - LINE_HEIGHT * 2,
-    size: 11,
-    font: regularFont,
-    color: rgb(0.16, 0.19, 0.2)
-  });
+  const drawMetaRow = (pairs: Array<{ label: string; value: string }>) => {
+    const columnWidth = (page.getWidth() - BASE_MARGIN * 2 - 24) / 2;
+    const heights = pairs.map((item) => measureKeyValueHeight(item.value, regularFont, columnWidth));
+    const rowHeight = Math.max(...heights) + 6;
+    ensureSpace(rowHeight);
 
-  const columnWidth = (width - BASE_MARGIN * 2 - 24) / 2;
-  const metaTop = summaryY - LINE_HEIGHT * 4;
-  drawKeyValue(page, regularFont, boldFont, 'Culture', result.crop, BASE_MARGIN, metaTop);
-  drawKeyValue(page, regularFont, boldFont, 'Stade', result.stage, BASE_MARGIN + columnWidth + 24, metaTop);
-  drawKeyValue(page, regularFont, boldFont, 'Symptomes observes', result.symptoms.join('\n'), BASE_MARGIN, metaTop - LINE_HEIGHT * 3);
-  drawKeyValue(page, regularFont, boldFont, 'Contexte', result.context, BASE_MARGIN + columnWidth + 24, metaTop - LINE_HEIGHT * 3);
+    pairs.forEach((item, index) => {
+      const x = BASE_MARGIN + index * (columnWidth + 24);
+      page.drawText(item.label.toUpperCase(), {
+        x,
+        y: currentY,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.07, 0.34, 0.24)
+      });
+      drawWrappedText({
+        page,
+        text: item.value,
+        x,
+        y: currentY - LINE_HEIGHT,
+        font: regularFont,
+        size: 10,
+        color: rgb(0.16, 0.19, 0.2),
+        maxWidth: columnWidth,
+        lineHeight: LINE_HEIGHT - 2
+      });
+    });
 
-  const actionsY = metaTop - LINE_HEIGHT * 7;
-  page.drawText('Actions recommandees', {
-    x: BASE_MARGIN,
-    y: actionsY,
-    size: 14,
-    font: boldFont,
-    color: rgb(0.07, 0.34, 0.24)
-  });
+    currentY -= rowHeight;
+  };
+
+  const drawMetaSection = () => {
+    drawMetaRow([
+      { label: 'Culture', value: result.crop },
+      { label: 'Stade', value: result.stage }
+    ]);
+    drawMetaRow([
+      { label: 'Symptomes observes', value: result.symptoms.join(', ') },
+      { label: 'Contexte', value: result.context }
+    ]);
+    currentY -= 12;
+  };
+
   const toText = (action: unknown): string => {
     if (typeof action === 'string') return action;
     if (action && typeof action === 'object') {
@@ -195,27 +275,52 @@ export const generateDiagnosisReport = async (
     }
     return String(action ?? '');
   };
-  result.actions.forEach((action, index) => {
-    const y = actionsY - LINE_HEIGHT * (index + 1);
-    page.drawRectangle({
+
+  const drawActions = () => {
+    ensureSpace(LINE_HEIGHT * 2);
+    page.drawText('Actions recommandees', {
       x: BASE_MARGIN,
-      y: y - 3,
-      width: 8,
-      height: 8,
-      color: rgb(0.11, 0.69, 0.42)
+      y: currentY,
+      size: 14,
+      font: boldFont,
+      color: rgb(0.07, 0.34, 0.24)
     });
-    page.drawText(toText(action), {
-      x: BASE_MARGIN + 14,
-      y,
-      size: 11,
-      font: regularFont,
-      color: rgb(0.16, 0.19, 0.2)
+    currentY -= LINE_HEIGHT * 1.2;
+
+    const bulletWidth = 8;
+    const actionMaxWidth = page.getWidth() - BASE_MARGIN * 2 - bulletWidth - 10;
+    result.actions.forEach((action) => {
+      const text = toText(action);
+      const lines = wrapText(text, actionMaxWidth, regularFont, 11);
+      const blockHeight = lines.length * (LINE_HEIGHT - 2);
+      ensureSpace(blockHeight + 8);
+
+      page.drawRectangle({
+        x: BASE_MARGIN,
+        y: currentY - 3,
+        width: bulletWidth,
+        height: bulletWidth,
+        color: rgb(0.11, 0.69, 0.42)
+      });
+      drawWrappedText({
+        page,
+        text,
+        x: BASE_MARGIN + bulletWidth + 6,
+        y: currentY,
+        font: regularFont,
+        size: 11,
+        color: rgb(0.16, 0.19, 0.2),
+        maxWidth: actionMaxWidth,
+        lineHeight: LINE_HEIGHT - 2
+      });
+      currentY -= blockHeight + 8;
     });
-  });
+    currentY -= LINE_HEIGHT * 0.5;
+  };
 
-  let currentY = actionsY - LINE_HEIGHT * (result.actions.length + 2);
-
-  if (result.alternatives.length > 0) {
+  const drawAlternatives = () => {
+    if (result.alternatives.length === 0) return;
+    ensureSpace(LINE_HEIGHT * 2);
     page.drawText('Hypotheses alternatives', {
       x: BASE_MARGIN,
       y: currentY,
@@ -227,20 +332,29 @@ export const generateDiagnosisReport = async (
     result.alternatives.forEach((item) => {
       const score = (item.confidence * 100).toFixed(0);
       const text = `${item.label} - ${score}%`;
-      page.drawText(text, {
+      const lines = wrapText(text, page.getWidth() - BASE_MARGIN * 2, regularFont, 11);
+      const blockHeight = lines.length * (LINE_HEIGHT - 2);
+      ensureSpace(blockHeight + 6);
+      drawWrappedText({
+        page,
+        text,
         x: BASE_MARGIN,
         y: currentY,
-        size: 11,
         font: regularFont,
-        color: rgb(0.16, 0.19, 0.2)
+        size: 11,
+        color: rgb(0.16, 0.19, 0.2),
+        maxWidth: page.getWidth() - BASE_MARGIN * 2,
+        lineHeight: LINE_HEIGHT - 2
       });
-      currentY -= LINE_HEIGHT;
+      currentY -= blockHeight + 6;
     });
-  }
+    currentY -= LINE_HEIGHT * 0.5;
+  };
 
-  currentY -= LINE_HEIGHT;
+  const drawImages = async () => {
+    if (result.images.length === 0) return;
 
-  if (result.images.length > 0) {
+    ensureSpace(LINE_HEIGHT * 2);
     page.drawText('Observations visuelles', {
       x: BASE_MARGIN,
       y: currentY,
@@ -266,15 +380,15 @@ export const generateDiagnosisReport = async (
       const displayWidth = imageEmbed.width * scale;
       const displayHeight = imageEmbed.height * scale;
 
-      if (BASE_MARGIN + displayWidth * (column + 1) + gap * column > width - BASE_MARGIN) {
+      if (BASE_MARGIN + displayWidth * (column + 1) + gap * column > page.getWidth() - BASE_MARGIN) {
         column = 0;
         currentY -= rowHeight + gap;
         rowHeight = 0;
       }
 
       if (currentY - displayHeight < BASE_MARGIN) {
-        page = document.addPage([width, height]);
-        currentY = height - BASE_MARGIN;
+        page = document.addPage([PAGE_SIZE.width, PAGE_SIZE.height]);
+        currentY = page.getHeight() - BASE_MARGIN - LINE_HEIGHT;
         column = 0;
         rowHeight = 0;
         page.drawText('Suite des observations visuelles', {
@@ -298,18 +412,17 @@ export const generateDiagnosisReport = async (
 
       rowHeight = Math.max(rowHeight, displayHeight);
       column += 1;
-      if (column > 2) {
-        column = 0;
-        currentY = y - gap;
-        rowHeight = 0;
-      }
     }
-  }
+  };
+
+  drawHeader();
+  drawTitleBlock();
+  drawMetaSection();
+  drawActions();
+  drawAlternatives();
+  await drawImages();
 
   const pdfBytes = await document.save();
   const array = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
-  const buffer = toArrayBuffer(array);
-  return new Blob([buffer], {
-    type: 'application/pdf'
-  });
+  return new Blob([toArrayBuffer(array)], { type: 'application/pdf' });
 };

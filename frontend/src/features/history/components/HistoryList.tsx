@@ -46,7 +46,7 @@ const HistoryList = ({ entries, onToggleResolved, onDelete, onUpdate, isLoading 
 
   if (entries.length === 0) {
     return (
-      <Card className="flex flex-col gap-3 p-6 text-center">
+      <Card className="flex flex-col gap-3 p-6 text-center dark:bg-white/5 dark:border-white/10">
         <h3 className="text-lg font-semibold text-brand-text">{t('history.emptyTitle', 'Aucune activité récente')}</h3>
         <p className="text-sm text-brand-muted">{t('history.emptyDescription', 'Lancez un nouveau diagnostic pour voir les résultats ici.')}</p>
         <Button asChild to="/diagnosis/quick" className="mx-auto">
@@ -90,7 +90,7 @@ const HistoryList = ({ entries, onToggleResolved, onDelete, onUpdate, isLoading 
       />
 
       {filtered.length === 0 ? (
-        <Card className="p-6 text-center">
+        <Card className="p-6 text-center dark:bg-white/5 dark:border-white/10">
           <p className="text-sm text-brand-muted">
             {t('history.noResults', 'Aucun résultat avec ces filtres. Essayez d’élargir votre recherche.')}
           </p>

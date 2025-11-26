@@ -109,12 +109,12 @@ const HistoryListItem = ({ entry, onToggleResolved, onDelete, onUpdate }: ItemPr
       pending: t('common.statusPending') ?? t('common.loading')
     }[entry.status] ?? '';
 
-  const containerColor = entry.resolved ? 'border-emerald-200 bg-emerald-50/70' : 'border-subtle/60 bg-white/80';
+  const containerColor = entry.resolved ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-400/50 dark:bg-emerald-900/30' : 'border-subtle/60 bg-white/80 dark:border-white/10 dark:bg-white/5';
   const statusColor = entry.resolved ? 'bg-emerald-500' : 'bg-brand-danger';
 
   return (
     <div
-      className={`relative rounded-2xl p-4 shadow-[0_10px_24px_rgba(11,30,20,0.06)] transition hover:-translate-y-0.5 hover:border-brand-secondary/50 hover:bg-white motion-safe:duration-200 ${
+      className={`relative rounded-2xl p-4 shadow-[0_10px_24px_rgba(11,30,20,0.06)] transition hover:-translate-y-0.5 hover:border-brand-secondary/50 hover:bg-white dark:hover:bg-white/10 motion-safe:duration-200 ${
         menuOpen ? 'z-30 shadow-[0_16px_40px_rgba(11,30,20,0.12)]' : ''
       } ${containerColor}`}
     >
@@ -186,9 +186,9 @@ const HistoryListItem = ({ entry, onToggleResolved, onDelete, onUpdate }: ItemPr
               ...
             </Button>
             {menuOpen && (
-              <div className="absolute right-0 top-12 z-40 w-48 rounded-xl border border-subtle/60 bg-white p-2 shadow-lg">
+              <div className="absolute right-0 top-12 z-40 w-48 rounded-xl border border-subtle/60 bg-white p-2 shadow-lg dark:border-white/20 dark:bg-brand-surface/90">
                 <Link
-                  className="block rounded-lg px-3 py-2 text-left text-sm text-brand-text hover:bg-brand-surface/70 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  className="block rounded-lg px-3 py-2 text-left text-sm text-brand-text hover:bg-brand-surface/70 focus:outline-none focus:ring-2 focus:ring-brand-secondary dark:text-white dark:hover:bg-white/10"
                   to={`/history/${entry.id}`}
                   onClick={() => setMenuOpen(false)}
                 >
@@ -196,14 +196,14 @@ const HistoryListItem = ({ entry, onToggleResolved, onDelete, onUpdate }: ItemPr
                 </Link>
                 <button
                   type="button"
-                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-brand-text hover:bg-brand-surface/70 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-brand-text hover:bg-brand-surface/70 focus:outline-none focus:ring-2 focus:ring-brand-secondary dark:text-white dark:hover:bg-white/10"
                   onClick={handleEdit}
                 >
                   {t('history.edit')}
                 </button>
                 <button
                   type="button"
-                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-brand-danger hover:bg-brand-danger/10 focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-brand-danger hover:bg-brand-danger/10 focus:outline-none focus:ring-2 focus:ring-brand-secondary dark:text-brand-danger dark:hover:bg-brand-danger/20"
                   onClick={handleDelete}
                   disabled={isDeleting}
                 >

@@ -159,6 +159,11 @@ export const deleteDiagnosis = async (req, res, next) => {
 
 export const submitFeedback = async (req, res, next) => {
   try {
+    const userId = parseUserId(req);
+    if (!userId) {
+      throw buildHttpError('Unauthorized', 401);
+    }
+
     const diagnosisId = toNonEmptyString(req.params?.id);
     if (!diagnosisId) {
       throw buildHttpError('Diagnosis id is required', 400);
@@ -173,7 +178,7 @@ export const submitFeedback = async (req, res, next) => {
       throw buildHttpError('Feedback comment is too long', 400);
     }
 
-    const payload = { diagnosis_id: diagnosisId, useful, comment: comment || null };
+    const payload = { diagnosis_id: diagnosisId, user_id: userId, useful, comment: comment || null };
     await supabaseService.submitDiagnosisFeedback(payload);
     res.status(201).json({ success: true });
   } catch (error) {

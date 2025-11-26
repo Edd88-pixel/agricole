@@ -338,3 +338,8 @@ Après ces étapes, le backend peut publier des événements (`service_role`) et
 - Vérifiez que les fichiers `.env` sont complets et chargés par Vite/Node.
 - Si Vite preview signale un port occupé, spécifiez un autre port via `--port`.
 - Le backend expose CORS permissif (`Access-Control-Allow-Origin: *`) pour simplifier les appels depuis le frontend.
+
+## Export PDF (diagnostic)
+- Format : A4 portrait, marges fixes de 20 mm définies dans `frontend/src/features/diagnosis/services/report.ts` (constante `BASE_MARGIN`).
+- Génération : pdf-lib dans `report.ts` ; le texte est automatiquement wrappé selon la largeur disponible (wrap, gestion des retours à la ligne, colonnes).
+- Ajuster la largeur : modifiez `BASE_MARGIN` et/ou les largeurs de colonne dans `report.ts`. Le contenu se recalcule pour rester dans la zone imprimable.

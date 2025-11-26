@@ -42,17 +42,17 @@ const HistoryFilters = ({
   };
 
   return (
-    <Card className="flex flex-col gap-3 border border-subtle/70 bg-brand-surface/80 p-4 shadow-none lg:flex-row lg:items-center lg:justify-between">
+    <Card className="flex flex-col gap-3 border border-subtle/70 bg-brand-surface/80 p-4 shadow-none lg:flex-row lg:items-center lg:justify-between backdrop-blur">
       <div className="flex flex-1 flex-wrap gap-2">
         <input
-          className="focus-ring min-w-[220px] flex-1 rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted"
+          className="focus-ring min-w-[220px] flex-1 rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted dark:bg-brand-surface/60 dark:text-white dark:placeholder:text-brand-muted"
           placeholder={t('history.searchPlaceholder', 'Rechercher (titre, lieu, culture)...')}
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           aria-label={t('history.search', 'Rechercher')}
         />
         <select
-          className="focus-ring rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text"
+          className="focus-ring rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text dark:bg-brand-surface/60 dark:text-white"
           value={statusFilter}
           onChange={handleSelect((value) => onStatusChange(value as FilterStatus))}
           aria-label={t('history.filterStatus', 'Filtrer par statut')}
@@ -63,7 +63,7 @@ const HistoryFilters = ({
           <option value="resolved">{t('history.statusResolved', 'Résolus')}</option>
         </select>
         <select
-          className="focus-ring rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text"
+          className="focus-ring rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text dark:bg-brand-surface/60 dark:text-white"
           value={cropFilter}
           onChange={handleSelect(onCropChange)}
           aria-label={t('history.filterCrop', 'Filtrer par culture')}
@@ -76,7 +76,7 @@ const HistoryFilters = ({
           ))}
         </select>
         <select
-          className="focus-ring rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text"
+          className="focus-ring rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text dark:bg-brand-surface/60 dark:text-white"
           value={stageFilter}
           onChange={handleSelect(onStageChange)}
           aria-label={t('history.filterStage', 'Filtrer par stade')}
@@ -89,7 +89,7 @@ const HistoryFilters = ({
           ))}
         </select>
         <select
-          className="focus-ring rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text"
+          className="focus-ring rounded-xl border border-subtle/70 bg-white/90 px-3 py-2 text-sm text-brand-text dark:bg-brand-surface/60 dark:text-white"
           value={sortOrder}
           onChange={handleSelect((value) => onSortChange(value as SortOrder))}
           aria-label={t('history.sort', 'Trier')}

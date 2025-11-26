@@ -207,6 +207,7 @@ export const supabaseService = {
 
   async submitDiagnosisFeedback(payload) {
     ensurePresent(payload?.diagnosis_id, 'Diagnosis id is required for feedback');
+    ensurePresent(payload?.user_id, 'User id is required for feedback', 401);
 
     await wrapSupabaseCall(
       () => supabase().from(tables.feedback).insert(payload),
