@@ -135,6 +135,7 @@ const AppRoutes = () => {
               onToggleResolved={toggleResolved}
               onDelete={removeDiagnosis}
               onUpdate={updateDiagnosis}
+              isLoading={historyLoading}
             />
           }
         />

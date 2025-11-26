@@ -58,13 +58,6 @@ export const useSupabaseData = () => {
   }, []);
 
   useEffect(() => {
-    if (!authToken) {
-      setHistory([]);
-      setArticles([]);
-      setHistoryLoading(false);
-      setArticlesLoading(false);
-      return;
-    }
     void loadHistory();
     void loadArticles();
   }, [authToken, loadArticles, loadHistory]);
