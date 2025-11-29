@@ -1,6 +1,6 @@
 import PreferencesPanel from '@/features/settings/components/PreferencesPanel';
 import ProfileSettingsPanel from '@/features/settings/components/ProfileSettingsPanel';
-import type { UserProfile } from '@/features/profile/types/profile';
+import type { ProfileUpdate, UserProfile } from '@/features/profile/types/profile';
 
 type SettingsPageProps = {
   profile: UserProfile | null;
@@ -8,7 +8,7 @@ type SettingsPageProps = {
   userEmail: string;
   language: string;
   onChangeLanguage: (lng: string) => Promise<void>;
-  onUpdate: (values: Partial<UserProfile>) => Promise<void>;
+  onUpdate: (payload: ProfileUpdate) => Promise<void>;
 };
 
 const SettingsPage = ({ profile, greetingName, userEmail, language, onChangeLanguage, onUpdate }: SettingsPageProps) => {

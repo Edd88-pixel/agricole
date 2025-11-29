@@ -56,20 +56,31 @@ export const apiClient = {
     const url = buildUrl(path, query);
 
     const authToken = getAccessToken();
-    const authHeaders = authToken ? { Authorization: `Bearer ${authToken}` } : {};
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const mergedHeaders = new Headers();
+    mergedHeaders.set('Accept', 'application/json');
+    if (authToken) {
+      mergedHeaders.set('Authorization', `Bearer ${authToken}`);
+    }
+    if (body && !isFormData) {
+      mergedHeaders.set('Content-Type', 'application/json');
+    }
+    if (headers) {
+      if (headers instanceof Headers) {
+        headers.forEach((value, key) => mergedHeaders.set(key, value));
+      } else if (Array.isArray(headers)) {
+        headers.forEach(([key, value]) => mergedHeaders.set(key, value));
+      } else {
+        Object.entries(headers).forEach(([key, value]) => mergedHeaders.set(key, String(value)));
+      }
+    }
 
     try {
       const response = await fetch(url, {
         method,
-        headers: {
-          Accept: 'application/json',
-          ...(body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-          ...authHeaders,
-          ...headers
-        },
+        headers: mergedHeaders,
         body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
         signal: controller.signal,
         ...rest
@@ -110,7 +121,7 @@ export const apiClient = {
     return this.request<T>(path, { ...options, method: 'PATCH', body });
   },
 
-  delete<T>(path: string, options?: Omit<ApiRequestOptions, 'method' | 'body'>) {
+  delete<T>(path: string, options?: Omit<ApiRequestOptions, 'method'>) {
     return this.request<T>(path, { ...options, method: 'DELETE' });
   }
 };

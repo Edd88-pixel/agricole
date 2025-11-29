@@ -42,7 +42,7 @@ describe('apiClient', () => {
     }
 
     expect(thrown).toBeInstanceOf(ApiError);
-    expect((thrown as ApiError).status).toBe(500);
+    expect((thrown as InstanceType<typeof ApiError>).status).toBe(500);
   });
 
   it('wraps network failures into ApiError instances', async () => {

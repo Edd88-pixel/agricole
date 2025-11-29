@@ -82,6 +82,7 @@ export const useUserProfile = (user: AuthUser | null | undefined): ProfileState 
       if (!data) {
         const names = inferNames(user);
         data = await createProfile({
+          id: user.id,
           email: user.email ?? undefined,
           displayName: inferDisplayName(user),
           firstName: names.firstName,

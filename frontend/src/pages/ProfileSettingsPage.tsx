@@ -1,11 +1,11 @@
 import ProfileSettingsPanel from '@/features/settings/components/ProfileSettingsPanel';
-import type { UserProfile } from '@/features/profile/types/profile';
+import type { ProfileUpdate, UserProfile } from '@/features/profile/types/profile';
 
 type ProfileSettingsPageProps = {
   profile: UserProfile | null;
   greetingName: string;
   userEmail: string;
-  onUpdate: (values: Partial<UserProfile>) => Promise<void>;
+  onUpdate: (payload: ProfileUpdate) => Promise<void>;
 };
 
 const ProfileSettingsPage = ({ profile, greetingName, userEmail, onUpdate }: ProfileSettingsPageProps) => {
