@@ -5,6 +5,21 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": { "distDir": "dist" }
+    },
+    {
+      "src": "backend/serverless.js",
+      "use": "@vercel/node"
     }
+  ],
+  "functions": {
+    "backend/serverless.js": {
+      "runtime": "nodejs18.x",
+      "maxDuration": 10
+    }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/backend/serverless.js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
