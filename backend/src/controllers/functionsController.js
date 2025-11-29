@@ -181,9 +181,14 @@ export const runKnowledgeChat = async (req, res, next) => {
     const messageId = randomUUID();
     const userId = toNonEmptyString(owner) || owner;
 
-    await supabaseService.ensureKnowledgeConversation(conversationId, userId, {
-      title: prompt.slice(0, 80)
-    });
+    if (typeof supabaseService.ensureKnowledgeConversation === 'function') {
+      await supabaseService.ensureKnowledgeConversation(conversationId, userId, {
+        title: prompt.slice(0, 80)
+      });
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn('Supabase conversation helper unavailable; proceeding without upsert');
+    }
 
     res.status(202).json({ data: { status: 'queued', conversationId, messageId } });
 
