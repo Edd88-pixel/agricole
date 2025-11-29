@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Skeleton from '@/components/ui/Skeleton';
 import Card from '@/components/ui/Card';
@@ -20,6 +20,8 @@ import AuthGateway from '@/features/auth/components/AuthGateway';
 import { useAuthState, signOut } from '@/services/api/auth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { SupportedLocale } from '@/features/profile/types/profile';
+import SplashScreen from '@/features/splash/SplashScreen';
+import { SPLASH_DURATION_MS } from '@/features/splash/constants';
 
 const AppRoutes = () => {
   const { session, isLoading: authLoading } = useAuthState();
@@ -39,6 +41,7 @@ const AppRoutes = () => {
   const { i18n, t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     if (profile?.locale && i18n.language !== profile.locale) {
@@ -51,6 +54,21 @@ const AppRoutes = () => {
       navigate('/onboarding', { replace: true });
     }
   }, [location.pathname, navigate, profile, session]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (session) {
+      setShowSplash(false);
+      return;
+    }
+    setShowSplash(true);
+    const timer = window.setTimeout(() => setShowSplash(false), SPLASH_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [authLoading, session]);
+
+  if (!session && showSplash) {
+    return <SplashScreen />;
+  }
 
   if (authLoading || profileLoading) {
     return <Skeleton className="h-screen w-full" />;
