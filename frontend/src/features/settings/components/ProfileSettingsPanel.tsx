@@ -25,6 +25,7 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
   const [avatarCleared, setAvatarCleared] = useState(false);
   const [removedAvatarPath, setRemovedAvatarPath] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isOpeningAvatar, setIsOpeningAvatar] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +84,46 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
   const resetStatus = () => {
     setStatus(null);
     setError(null);
+  };
+
+  const resolveViewableAvatarUrl = async () => {
+    if (previewUrl) return previewUrl;
+    if (avatarUrl) return avatarUrl;
+    if (avatarPath) {
+      try {
+        const signed = await createSignedProfileUrl(avatarPath);
+        setAvatarUrl(signed);
+        return signed;
+      } catch (signError) {
+        console.error('Unable to sign avatar for viewing', signError);
+      }
+    }
+    return null;
+  };
+
+  const handleViewAvatar = async () => {
+    resetStatus();
+    setIsOpeningAvatar(true);
+    try {
+      const viewableUrl = await resolveViewableAvatarUrl();
+      if (!viewableUrl) {
+        setError(t('settings.avatarViewUnavailable', 'Impossible d’ouvrir l’avatar pour le moment'));
+        return;
+      }
+
+      const newTab = window.open(viewableUrl, '_blank', 'noopener,noreferrer');
+      if (!newTab) {
+        setError(t('settings.avatarViewBlocked', 'Le navigateur a bloqué l’ouverture du nouvel onglet.'));
+        return;
+      }
+      newTab.focus();
+      setStatus(t('settings.avatarViewOpened', 'Avatar ouvert dans un nouvel onglet'));
+    } catch (viewError) {
+      console.error('Unable to open avatar preview', viewError);
+      setError(t('settings.avatarViewUnavailable', 'Impossible d’ouvrir l’avatar pour le moment'));
+    } finally {
+      setIsOpeningAvatar(false);
+    }
   };
 
   const handleSave = async () => {
@@ -147,6 +188,7 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
   }
 
   const displayAvatar = previewUrl ?? avatarUrl;
+  const hasAvatarSource = Boolean(displayAvatar || avatarPath);
 
   return (
     <Card className="space-y-6">
@@ -203,6 +245,9 @@ const ProfileSettingsPanel = ({ profile, onUpdate, greetingName, userEmail }: Pr
             }}
           >
             {t('settings.removeAvatar')}
+          </Button>
+          <Button variant="secondary" onClick={handleViewAvatar} isLoading={isOpeningAvatar} disabled={!hasAvatarSource}>
+            {t('settings.viewAvatar', 'Voir l’avatar en grand')}
           </Button>
         </div>
         <div className="flex-1 space-y-4">
