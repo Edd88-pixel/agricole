@@ -8,15 +8,10 @@
     },
     {
       "src": "backend/serverless.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": { "runtime": "nodejs18.x", "maxDuration": 10 }
     }
   ],
-  "functions": {
-    "backend/serverless.js": {
-      "runtime": "nodejs18.x",
-      "maxDuration": 10
-    }
-  },
   "routes": [
     { "src": "/api/(.*)", "dest": "/backend/serverless.js" },
     { "handle": "filesystem" },
