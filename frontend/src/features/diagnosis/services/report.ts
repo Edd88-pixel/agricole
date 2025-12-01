@@ -5,6 +5,14 @@ import type { DiagnosisResult } from '../types/diagnosis';
 const BASE_MARGIN = 56.7; // 20mm margins on A4
 const LINE_HEIGHT = 18;
 const PAGE_SIZE = { width: 595.28, height: 841.89 }; // A4 portrait in points
+const WATERMARK_TARGET_WIDTH = 320;
+const WATERMARK_OPACITY = 0.12;
+const FOOTER_TEXT = 'Analyse generee par Agrisense';
+const FOOTER_FONT_SIZE = 11;
+const FOOTER_GAP = 8;
+const FOOTER_LOGO_WIDTH = 68;
+const FOOTER_OPACITY = 0.8;
+type PDFImage = Awaited<ReturnType<PDFDocument['embedPng']>>;
 
 const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
   const source = view.buffer;
@@ -62,6 +70,80 @@ const fetchImageBytes = async (url: string): Promise<{ bytes: Uint8Array; mime: 
     console.warn('Unable to fetch image for report', error);
     return null;
   }
+};
+
+const fetchWatermarkImage = async (document: PDFDocument): Promise<PDFImage | null> => {
+  if (typeof fetch !== 'function') {
+    return null;
+  }
+
+  const url =
+    typeof window !== 'undefined' && window.location?.origin ? `${window.location.origin}/logo.png` : '/logo.png';
+
+  try {
+    const response = await fetch(url);
+    if (!response || !('ok' in response) || !response.ok) {
+      throw new Error('Invalid watermark response');
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const mime = response.headers.get('Content-Type') ?? 'image/png';
+    const bytes = new Uint8Array(arrayBuffer);
+    return mime.includes('png') ? await document.embedPng(bytes) : await document.embedJpg(bytes);
+  } catch (error) {
+    console.warn('Unable to fetch watermark image', error);
+    return null;
+  }
+};
+
+const drawWatermark = (page: ReturnType<PDFDocument['addPage']>, watermark: PDFImage | null) => {
+  if (!watermark) return;
+  const scale = Math.min(WATERMARK_TARGET_WIDTH / watermark.width, 1);
+  const width = watermark.width * scale;
+  const height = watermark.height * scale;
+  const x = (page.getWidth() - width) / 2;
+  const y = (page.getHeight() - height) / 2;
+
+  page.drawImage(watermark, {
+    x,
+    y,
+    width,
+    height,
+    opacity: WATERMARK_OPACITY
+  });
+};
+
+const drawFooterOnAllPages = (document: PDFDocument, font: PDFFont, watermark: PDFImage | null) => {
+  const pages = document.getPages();
+  pages.forEach((page) => {
+    const pageWidth = page.getWidth();
+    const footerY = BASE_MARGIN / 2;
+
+    const textWidth = font.widthOfTextAtSize(FOOTER_TEXT, FOOTER_FONT_SIZE);
+
+    const hasLogo = Boolean(watermark);
+    const logoWidth = hasLogo ? FOOTER_LOGO_WIDTH : 0;
+    const logoHeight = hasLogo && watermark ? (watermark.height * (FOOTER_LOGO_WIDTH / watermark.width)) : 0;
+    const totalWidth = textWidth + (hasLogo ? FOOTER_GAP + logoWidth : 0);
+    const startX = (pageWidth - totalWidth) / 2;
+
+    if (hasLogo && watermark) {
+      page.drawImage(watermark, {
+        x: startX,
+        y: footerY - logoHeight / 2,
+        width: logoWidth,
+        height: logoHeight,
+        opacity: FOOTER_OPACITY
+      });
+    }
+
+    page.drawText(FOOTER_TEXT, {
+      x: startX + (hasLogo ? logoWidth + FOOTER_GAP : 0),
+      y: footerY,
+      size: FOOTER_FONT_SIZE,
+      font,
+      color: rgb(0.07, 0.34, 0.24)
+    });
+  });
 };
 
 const wrapText = (text: string, maxWidth: number, font: PDFFont, fontSize: number): string[] => {
@@ -136,11 +218,20 @@ export const generateDiagnosisReport = async (
   options: ReportOptions = {}
 ): Promise<Blob> => {
   const document = await PDFDocument.create();
-  let page = document.addPage([PAGE_SIZE.width, PAGE_SIZE.height]);
-  let currentY = page.getHeight() - BASE_MARGIN;
+  const [regularFont, boldFont, watermark] = await Promise.all([
+    document.embedFont(StandardFonts.Helvetica),
+    document.embedFont(StandardFonts.HelveticaBold),
+    fetchWatermarkImage(document)
+  ]);
 
-  const regularFont = await document.embedFont(StandardFonts.Helvetica);
-  const boldFont = await document.embedFont(StandardFonts.HelveticaBold);
+  const addPageWithWatermark = () => {
+    const newPage = document.addPage([PAGE_SIZE.width, PAGE_SIZE.height]);
+    drawWatermark(newPage, watermark);
+    return newPage;
+  };
+
+  let page = addPageWithWatermark();
+  let currentY = page.getHeight() - BASE_MARGIN;
 
   const appName = options.appName ?? 'Agricole AI Companion';
   const created = new Date(result.createdAt);
@@ -151,7 +242,7 @@ export const generateDiagnosisReport = async (
 
   const ensureSpace = (neededHeight: number) => {
     if (currentY - neededHeight < BASE_MARGIN) {
-      page = document.addPage([PAGE_SIZE.width, PAGE_SIZE.height]);
+      page = addPageWithWatermark();
       currentY = page.getHeight() - BASE_MARGIN;
     }
   };
@@ -387,7 +478,7 @@ export const generateDiagnosisReport = async (
       }
 
       if (currentY - displayHeight < BASE_MARGIN) {
-        page = document.addPage([PAGE_SIZE.width, PAGE_SIZE.height]);
+        page = addPageWithWatermark();
         currentY = page.getHeight() - BASE_MARGIN - LINE_HEIGHT;
         column = 0;
         rowHeight = 0;
@@ -421,6 +512,7 @@ export const generateDiagnosisReport = async (
   drawActions();
   drawAlternatives();
   await drawImages();
+  drawFooterOnAllPages(document, regularFont, watermark);
 
   const pdfBytes = await document.save();
   const array = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);

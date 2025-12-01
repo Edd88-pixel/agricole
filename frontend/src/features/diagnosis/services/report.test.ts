@@ -69,12 +69,16 @@ describe('generateDiagnosisReport', () => {
     expect(mockFetch).toHaveBeenCalledWith('https://example.com/image.png');
   });
 
-  it('falls back to inline data URLs without fetch', async () => {
+  it('falls back to inline data URLs (only watermark fetch)', async () => {
     const dataUrl = `data:image/png;base64,${PNG_BASE64}`;
-    const mockFetch = vi.fn();
+    const mockFetch = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => toArrayBuffer(PNG_BASE64),
+      headers: new Headers({ 'Content-Type': 'image/png' })
+    } as Response));
     vi.stubGlobal('fetch', mockFetch);
     const blob = await generateDiagnosisReport({ ...sampleResult, images: [dataUrl] });
     expect(blob.size).toBeGreaterThan(0);
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });
