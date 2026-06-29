@@ -7,7 +7,7 @@ const LINE_HEIGHT = 18;
 const PAGE_SIZE = { width: 595.28, height: 841.89 }; // A4 portrait in points
 const WATERMARK_TARGET_WIDTH = 320;
 const WATERMARK_OPACITY = 0.12;
-const FOOTER_TEXT = 'Analyse generee par Agrisense';
+const FOOTER_TEXT = 'Analyse generee par AgriSense Diagnostics';
 const FOOTER_FONT_SIZE = 11;
 const FOOTER_GAP = 8;
 const FOOTER_LOGO_WIDTH = 68;
@@ -233,7 +233,7 @@ export const generateDiagnosisReport = async (
   let page = addPageWithWatermark();
   let currentY = page.getHeight() - BASE_MARGIN;
 
-  const appName = options.appName ?? 'Agricole AI Companion';
+  const appName = options.appName ?? 'AgriSense Diagnostics';
   const created = new Date(result.createdAt);
   const formattedDate = created.toLocaleString(options.locale ?? 'fr-FR', {
     dateStyle: 'full',

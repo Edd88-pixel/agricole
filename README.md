@@ -1,6 +1,8 @@
-# Agricole – Installation et exécution
+# AgriSense Diagnostics
 
-Application full-stack composée d'un frontend React/TypeScript (Vite + Tailwind) et d'un backend Node/Express minimal. Ce guide permet à un développeur externe de cloner, installer, tester et lancer l'application sans autre aide.
+AI-assisted plant health platform for field diagnostics, agronomic guidance, image analysis and follow-up workflows.
+
+The application combines a React/TypeScript frontend, a Node.js/Express API, Supabase authentication and realtime data, and containerized local deployment.
 
 ## Prérequis
 - Node.js 20+

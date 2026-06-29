@@ -1,2 +1,0 @@
-- Vérifier les instructions spécifiques du projet.
-- Ce fichier a été créé automatiquement par l'agent pour les actions Copilot.

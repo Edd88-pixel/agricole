@@ -41,7 +41,7 @@ const buildClient = (): SupabaseClient | null => {
     const syncSession = () => {
       void applyStoredSession(supabase);
     };
-    window.addEventListener('agricole-auth-tokens-changed', syncSession);
+    window.addEventListener('agrisense-auth-tokens-changed', syncSession);
     window.addEventListener('storage', syncSession);
   }
 

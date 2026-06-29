@@ -8,7 +8,8 @@ type ThemeContextValue = {
   setTheme: (theme: Theme) => void;
 };
 
-const STORAGE_KEY = 'agricole.theme';
+const STORAGE_KEY = 'agrisense.theme';
+const LEGACY_STORAGE_KEY = 'agricole.theme';
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
@@ -30,7 +31,12 @@ type ThemeProviderProps = {
 
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+    const stored = (localStorage.getItem(STORAGE_KEY) ??
+      localStorage.getItem(LEGACY_STORAGE_KEY)) as Theme | null;
+    if (!localStorage.getItem(STORAGE_KEY) && stored) {
+      localStorage.setItem(STORAGE_KEY, stored);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
     return stored ?? 'system';
   });
 

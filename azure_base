@@ -19,11 +19,11 @@ az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
 Étape 2 — Variables de travail (à adapter)
 ```powershell
 $LOCATION="westeurope"
-$RG="rg-agricole"
-$ACR="acragricole$((Get-Random -Maximum 9999))"   # doit être unique globalement
-$PLAN="plan-agricole"
-$WEB_BACK="app-back-agricole"
-$WEB_FRONT="app-front-agricole"
+$RG="rg-agrisense"
+$ACR="acragrisense$((Get-Random -Maximum 9999))"   # doit être unique globalement
+$PLAN="plan-agrisense"
+$WEB_BACK="app-back-agrisense"
+$WEB_FRONT="app-front-agrisense"
 $BACK_IMAGE="backend:latest"      # image locale
 $FRONT_IMAGE="frontend:latest"    # image locale
 $BACK_PORT=8080                   # port exposé par le backend
@@ -126,7 +126,7 @@ Bonnes pratiques rapides
 - Utilise des tags versionnés (ex: v1.0.0) et garde :latest seulement pour dev.
 - Stocke secrets uniquement dans App Settings ou Azure Key Vault (puis référence Key Vault).
 - Active les logs et Application Insights si besoin de télémétrie :
-  `az monitor app-insights component create -g $RG -l $LOCATION -a "appi-agricole"` puis
+  `az monitor app-insights component create -g $RG -l $LOCATION -a "appi-agrisense"` puis
   `az webapp config appsettings set -g $RG -n $WEB_BACK --settings APPINSIGHTS_INSTRUMENTATIONKEY=<key>`
 - Vérifie la variable `WEBSITES_PORT` = port exposé dans l’image Docker (sinon 8080/80).
 - Pour SSL correct sur backend, renforce CORS et force HTTPS dans ton app.

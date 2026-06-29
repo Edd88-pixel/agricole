@@ -110,12 +110,12 @@ export const useAuthState = () => {
 
     handleTokensChange();
     window.addEventListener('storage', handleTokensChange);
-    window.addEventListener('agricole-auth-tokens-changed', handleTokensChange);
+    window.addEventListener('agrisense-auth-tokens-changed', handleTokensChange);
 
     return () => {
       isActive = false;
       window.removeEventListener('storage', handleTokensChange);
-      window.removeEventListener('agricole-auth-tokens-changed', handleTokensChange);
+      window.removeEventListener('agrisense-auth-tokens-changed', handleTokensChange);
     };
   }, []);
 

@@ -33,7 +33,7 @@ export default {
     logs: false,
     themes: [
       {
-        agricole: {
+        agrisense: {
           primary: '#0B6E4F',
           'primary-content': '#F6FBF7',
           secondary: '#107C8C',

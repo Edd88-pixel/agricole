@@ -26,7 +26,7 @@ const SplashScreen = () => {
         <div className="mb-4 inline-flex items-center justify-center">
           <img
             src="/logo.png"
-            alt="Agricole"
+            alt="AgriSense Diagnostics"
             className="h-72 w-72 object-contain drop-shadow-[0_20px_48px_rgba(11,110,79,0.22)] sm:h-80 sm:w-80"
             style={{ animation: 'float-soft 6s ease-in-out infinite' }}
           />

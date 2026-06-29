@@ -4,16 +4,23 @@ export type StoredTokens = {
   expiresAt?: number | null;
 };
 
-const TOKEN_KEY = 'agricole.auth.tokens';
+const TOKEN_KEY = 'agrisense.auth.tokens';
+const LEGACY_TOKEN_KEY = 'agricole.auth.tokens';
+export const AUTH_TOKENS_CHANGED_EVENT = 'agrisense-auth-tokens-changed';
 
 const isBrowser = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined';
 
 const readStorage = (): StoredTokens | null => {
   if (!isBrowser()) return null;
-  const raw = localStorage.getItem(TOKEN_KEY);
+  const raw = localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as StoredTokens;
+    const tokens = JSON.parse(raw) as StoredTokens;
+    if (!localStorage.getItem(TOKEN_KEY)) {
+      localStorage.setItem(TOKEN_KEY, raw);
+      localStorage.removeItem(LEGACY_TOKEN_KEY);
+    }
+    return tokens;
   } catch {
     return null;
   }
@@ -25,7 +32,7 @@ export const getAccessToken = (): string | undefined => readStorage()?.accessTok
 
 const emitTokensChanged = () => {
   if (!isBrowser()) return;
-  window.dispatchEvent(new Event('agricole-auth-tokens-changed'));
+  window.dispatchEvent(new Event(AUTH_TOKENS_CHANGED_EVENT));
 };
 
 export const storeTokens = (tokens: StoredTokens) => {
@@ -37,5 +44,6 @@ export const storeTokens = (tokens: StoredTokens) => {
 export const clearTokens = () => {
   if (!isBrowser()) return;
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
   emitTokensChanged();
 };

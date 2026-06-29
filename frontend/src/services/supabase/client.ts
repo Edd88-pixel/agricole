@@ -50,7 +50,7 @@ export const getSupabaseClient = (): SupabaseClient | null => {
     auth: { persistSession: false },
     global: {
       headers: {
-        'x-client-info': 'agricole-knowledge-chat'
+        'x-client-info': 'agrisense-diagnostics'
       }
     }
   });
@@ -62,7 +62,7 @@ export const getSupabaseClient = (): SupabaseClient | null => {
     const handleTokensChanged = () => {
       void applyAuthTokens(client);
     };
-    window.addEventListener('agricole-auth-tokens-changed', handleTokensChanged);
+    window.addEventListener('agrisense-auth-tokens-changed', handleTokensChanged);
     window.addEventListener('storage', handleTokensChanged);
   }
 

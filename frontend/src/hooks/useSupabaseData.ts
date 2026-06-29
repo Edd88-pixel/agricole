@@ -25,10 +25,10 @@ export const useSupabaseData = () => {
   useEffect(() => {
     const syncTokens = () => setAuthToken(getAccessToken());
     window.addEventListener('storage', syncTokens);
-    window.addEventListener('agricole-auth-tokens-changed', syncTokens);
+    window.addEventListener('agrisense-auth-tokens-changed', syncTokens);
     return () => {
       window.removeEventListener('storage', syncTokens);
-      window.removeEventListener('agricole-auth-tokens-changed', syncTokens);
+      window.removeEventListener('agrisense-auth-tokens-changed', syncTokens);
     };
   }, []);
 
